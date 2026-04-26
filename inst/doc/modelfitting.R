@@ -1,24 +1,22 @@
 ## ----include = FALSE----------------------------------------------------------
-knitr::opts_chunk$set(
-collapse = TRUE,
-comment = "#>"
-)
+  knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE
+  )
 
 ## ----setup--------------------------------------------------------------------
-library(ameras)
+  library(ameras)
 
 ## -----------------------------------------------------------------------------
 data(data, package="ameras")
 head(data)
 
-## -----------------------------------------------------------------------------
-dosevars <- paste0("V", 1:10)
-
 ## ----modelfit.linreg, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(12345)
-fit.ameras.linreg <- ameras(Y="Y.gaussian", dosevars=dosevars, X=c("X1","X2"), data=data, 
-                            family="gaussian", methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
-                            niter.BMA = 5000, nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.linreg <- ameras(Y.gaussian~dose(V1:V10)+X1+X2, data=data, 
+                            family="gaussian", niter.BMA=5000, nburnin.BMA=1000,
+                            methods=c("RC", "ERC", "MCML", "FMA", "BMA"))
 
 ## ----eval = identical(Sys.getenv("NOT_CRAN"), "true")-------------------------
 str(fit.ameras.linreg)
@@ -37,10 +35,10 @@ traceplot(fit.ameras.linreg)
 
 ## ----modelfit.logreg, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(33521)
-fit.ameras.logreg <- ameras(Y="Y.binomial", dosevars=dosevars, X=c("X1","X2"), data=data, 
-                            family="binomial", deg=2, doseRRmod = "EXP", 
-                            methods=c("RC", "ERC", "MCML", "FMA", "BMA"), niter.BMA = 5000, 
-                            nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.logreg <- ameras(Y.binomial~dose(V1:V10, deg=2, model="EXP")+X1+X2, 
+                            data=data, family="binomial", 
+                            methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
+                            niter.BMA = 5000, nburnin.BMA = 1000)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 summary(fit.ameras.logreg)
@@ -48,15 +46,12 @@ summary(fit.ameras.logreg)
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 coef(fit.ameras.logreg)
 
-## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
-traceplot(fit.ameras.logreg)
-
 ## ----modelfit.logreg.lin, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(3521216)
-fit.ameras.logreg.lin <- ameras(Y="Y.binomial", dosevars=dosevars, X=c("X1","X2"), data=data, 
-                                family="binomial", deg=1, doseRRmod = "EXP", 
-                                methods=c("RC", "ERC", "MCML", "FMA", "BMA"), niter.BMA = 5000, 
-                                nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.logreg.lin <- ameras(Y.binomial~dose(V1:V10, deg=1, model="EXP")+X1+X2,  
+                                data=data, family="binomial", 
+                                methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
+                                niter.BMA = 5000, nburnin.BMA = 1000)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 summary(fit.ameras.logreg.lin)
@@ -64,15 +59,12 @@ summary(fit.ameras.logreg.lin)
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 coef(fit.ameras.logreg.lin)
 
-## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
-traceplot(fit.ameras.logreg.lin)
-
 ## ----modelfit.poisson, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(332101)
-fit.ameras.poisson <- ameras(Y="Y.poisson", dosevars=dosevars, X=c("X1","X2"), data=data, 
-                             family="poisson", deg=2, doseRRmod = "EXP", 
-                             methods=c("RC", "ERC", "MCML", "FMA", "BMA"), niter.BMA = 5000, 
-                             nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.poisson <- ameras(Y.poisson~dose(V1:V10, deg=2, model="EXP")+X1+X2, 
+                             data=data, family="poisson", 
+                             methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
+                             niter.BMA = 5000, nburnin.BMA = 1000)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 summary(fit.ameras.poisson)
@@ -80,15 +72,12 @@ summary(fit.ameras.poisson)
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 coef(fit.ameras.poisson)
 
-## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
-traceplot(fit.ameras.poisson)
-
 ## ----modelfit.poisson.lin, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(24252)
-fit.ameras.poisson.lin <- ameras(Y="Y.poisson", dosevars=dosevars, X=c("X1","X2"), data=data, 
-                                 family="poisson", deg=1, doseRRmod = "EXP", 
-                                 methods=c("RC", "ERC", "MCML", "FMA", "BMA"), niter.BMA = 5000, 
-                                 nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.poisson.lin <- ameras(Y.poisson~dose(V1:V10, deg=1, model="EXP")+X1+X2, 
+                                 data=data, family="poisson", 
+                                 methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
+                                 niter.BMA = 5000, nburnin.BMA = 1000)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 summary(fit.ameras.poisson.lin)
@@ -96,15 +85,13 @@ summary(fit.ameras.poisson.lin)
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 coef(fit.ameras.poisson.lin)
 
-## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
-traceplot(fit.ameras.poisson.lin)
-
 ## ----modelfit.prophaz, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(332120000)
-fit.ameras.prophaz <- ameras(Y="status", exit="time", dosevars=dosevars, X=c("X1","X2"), 
-                             data=data, family="prophaz", deg=2, doseRRmod = "EXP", 
-                             methods=c("RC", "ERC", "MCML", "FMA", "BMA"), niter.BMA = 5000, 
-                             nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.prophaz <- ameras(Surv(time, status)~
+                               dose(V1:V10, deg=2, model="EXP")+X1+X2, 
+                             data=data, family="prophaz", 
+                             methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
+                             niter.BMA = 5000, nburnin.BMA = 1000)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 summary(fit.ameras.prophaz)
@@ -115,15 +102,13 @@ coef(fit.ameras.prophaz)
 ## ----eval = identical(Sys.getenv("NOT_CRAN"), "true")-------------------------
 fit.ameras.prophaz$BMA$prophaz.timepoints
 
-## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
-traceplot(fit.ameras.prophaz)
-
 ## ----modelfit.prophaz.lin, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(24978252)
-fit.ameras.prophaz.lin <- ameras(Y="status", exit="time", dosevars=dosevars, X=c("X1","X2"), 
-                                 data=data, family="prophaz", deg=1, doseRRmod = "EXP", 
-                                 methods=c("RC", "ERC", "MCML", "FMA", "BMA"), niter.BMA = 5000, 
-                                 nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.prophaz.lin <- ameras(Surv(time, status)~
+                                   dose(V1:V10, deg=1, model="EXP")+X1+X2, 
+                                 data=data, family="prophaz", 
+                                 methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
+                                 niter.BMA = 5000, nburnin.BMA = 1000)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 summary(fit.ameras.prophaz.lin)
@@ -131,16 +116,13 @@ summary(fit.ameras.prophaz.lin)
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 coef(fit.ameras.prophaz.lin)
 
-## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
-traceplot(fit.ameras.prophaz.lin)
-
-
 ## ----modelfit.multinomial, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(33)
-fit.ameras.multinomial <- ameras(Y="Y.multinomial", dosevars=dosevars, X=c("X1","X2"), data=data, 
-                            family="multinomial", deg=2, doseRRmod = "EXP", 
-                            methods=c("RC", "ERC", "MCML", "FMA", "BMA"), niter.BMA = 5000, 
-                            nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.multinomial <- ameras(Y.multinomial~
+                                   dose(V1:V10, deg=2, model="EXP")+X1+X2, 
+                                 data=data, family="multinomial",
+                                 methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
+                                 niter.BMA = 5000, nburnin.BMA = 1000)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 summary(fit.ameras.multinomial)
@@ -148,15 +130,13 @@ summary(fit.ameras.multinomial)
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 coef(fit.ameras.multinomial)
 
-## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
-traceplot(fit.ameras.multinomial)
-
 ## ----modelfit.multinomial.lin, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(44)
-fit.ameras.multinomial.lin <- ameras(Y="Y.multinomial", dosevars=dosevars, X=c("X1","X2"), data=data, 
-                            family="multinomial", deg=1, doseRRmod = "EXP", 
-                            methods=c("RC","ERC", "MCML", "FMA", "BMA"), niter.BMA = 5000, 
-                            nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.multinomial.lin <- ameras(Y.multinomial~
+                                       dose(V1:V10, deg=1, model="EXP")+X1+X2, 
+                                     data=data, family="multinomial",
+                                     methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
+                                     niter.BMA = 5000, nburnin.BMA = 1000)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 summary(fit.ameras.multinomial.lin)
@@ -164,15 +144,12 @@ summary(fit.ameras.multinomial.lin)
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 coef(fit.ameras.multinomial.lin)
 
-## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
-traceplot(fit.ameras.multinomial.lin)
-
 ## ----modelfit.clogit, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(3301)
-fit.ameras.clogit <- ameras(Y="Y.clogit", dosevars=dosevars, X=c("X1","X2"), data=data, 
-                            family="clogit", deg=2, doseRRmod = "EXP", setnr="setnr",
-                            methods=c("RC", "ERC", "MCML", "FMA", "BMA"), niter.BMA = 5000, 
-                            nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.clogit <- ameras(Y.clogit~dose(V1:V10, deg=2, model="EXP")+X1+X2+
+                              strata(setnr), data=data, family="clogit", 
+                            methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
+                            niter.BMA = 5000, nburnin.BMA = 1000)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 summary(fit.ameras.clogit)
@@ -180,22 +157,16 @@ summary(fit.ameras.clogit)
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 coef(fit.ameras.clogit)
 
-## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
-traceplot(fit.ameras.clogit)
-
 ## ----modelfit.clogit.lin, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 set.seed(4401)
-fit.ameras.clogit.lin <- ameras(Y="Y.clogit", dosevars=dosevars, X=c("X1","X2"), data=data, 
-                            family="clogit", deg=1, doseRRmod = "EXP", setnr="setnr",
-                            methods=c("RC","ERC", "MCML", "FMA", "BMA"), niter.BMA = 5000, 
-                            nburnin.BMA = 1000, CI=c("wald.orig","percentile"))
+fit.ameras.clogit.lin <- ameras(Y.clogit~dose(V1:V10, deg=2, model="EXP")+X1+X2+
+                                  strata(setnr), data=data, family="clogit", 
+                                methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
+                                niter.BMA = 5000, nburnin.BMA = 1000)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 summary(fit.ameras.clogit.lin)
 
 ## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
 coef(fit.ameras.clogit.lin)
-
-## ----fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")----
-traceplot(fit.ameras.clogit.lin)
 
