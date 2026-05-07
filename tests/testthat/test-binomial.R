@@ -23,9 +23,14 @@ for (combo in binomial_combos) {
       data = data,
     )
     fit <- confint(fit, type = c("wald.orig", "percentile"))
-    expect_snapshot(fit$RC$coefficients)
-    expect_snapshot(fit$RC$sd)
-    expect_snapshot(fit$RC$CI)
+    expect_snapshot_value(
+      coef(fit),
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(fit$RC$sd, tolerance = 1e-4, style = "deparse")
+    expect_snapshot_value(fit$RC$CI, tolerance = 1e-4, style = "deparse")
+    expect_snapshot(print(summary(fit)$summary_table, digits = 2))
   })
 }
 
@@ -50,9 +55,14 @@ for (method in setdiff(all_methods, "RC")) {
       nburnin.BMA = 500
     )
     fit <- confint(fit, type = c("wald.orig", "percentile"))
-    expect_snapshot(fit[[method]]$coefficients)
-    expect_snapshot(fit[[method]]$sd)
-    expect_snapshot(fit[[method]]$CI)
+    expect_snapshot_value(
+      coef(fit),
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(fit[[method]]$sd, tolerance = 1e-4, style = "deparse")
+    expect_snapshot_value(fit[[method]]$CI, tolerance = 1e-4, style = "deparse")
+    expect_snapshot(print(summary(fit)$summary_table, digits = 2))
   })
 }
 

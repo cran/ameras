@@ -1,130 +1,140 @@
 # Poisson snapshot: RC
 
-    Code
-      fit[[method]]$coefficients
-    Output
-       (Intercept)         dose dose_squared 
-       -0.88451188   0.62049067  -0.04009246 
+    structure(list(RC = c(-0.884511877326043, 0.62049067304047, -0.0400924621455127
+    )), class = "data.frame", row.names = c("(Intercept)", "dose", 
+    "dose_squared"))
+
+---
+
+    c("(Intercept)" = 0.0407525835288347, dose = 0.0398084600441328, 
+    dose_squared = 0.0073719270436653)
+
+---
+
+    structure(list(lower = c(-0.96438547331952, 0.542467525073967, 
+    -0.0545411736477535), upper = c(-0.804638281332567, 0.698513821006972, 
+    -0.0256437506432719)), class = "data.frame", row.names = c("(Intercept)", 
+    "dose", "dose_squared"))
 
 ---
 
     Code
-      fit[[method]]$sd
+      print(summary(fit)$summary_table, digits = 2)
     Output
-       (Intercept)         dose dose_squared 
-       0.040752584  0.039808460  0.007371927 
-
----
-
-    Code
-      fit[[method]]$CI
-    Output
-                         lower       upper
-      (Intercept)  -0.96438547 -0.80463828
-      dose          0.54246753  0.69851382
-      dose_squared -0.05454117 -0.02564375
+        Method         Term Estimate     SE CI.lower CI.upper
+      1     RC  (Intercept)    -0.88 0.0408   -0.964   -0.805
+      2     RC         dose     0.62 0.0398    0.542    0.699
+      3     RC dose_squared    -0.04 0.0074   -0.055   -0.026
 
 # Poisson snapshot: ERC
 
-    Code
-      fit[[method]]$coefficients
-    Output
-       (Intercept)         dose dose_squared 
-       -0.87990056   0.61124972  -0.03787445 
+    structure(list(ERC = c(-0.879900561003282, 0.611249720235731, 
+    -0.0378744548428055)), class = "data.frame", row.names = c("(Intercept)", 
+    "dose", "dose_squared"))
+
+---
+
+    c("(Intercept)" = 0.0404559831820766, dose = 0.0387383055934341, 
+    dose_squared = 0.00701626766896617)
+
+---
+
+    structure(list(lower = c(-0.95919283099931, 0.535324036450494, 
+    -0.051626086779872), upper = c(-0.800608291007254, 0.687175404020969, 
+    -0.024122822905739)), class = "data.frame", row.names = c("(Intercept)", 
+    "dose", "dose_squared"))
 
 ---
 
     Code
-      fit[[method]]$sd
+      print(summary(fit)$summary_table, digits = 2)
     Output
-       (Intercept)         dose dose_squared 
-       0.040455983  0.038738306  0.007016268 
-
----
-
-    Code
-      fit[[method]]$CI
-    Output
-                         lower       upper
-      (Intercept)  -0.95919283 -0.80060829
-      dose          0.53532404  0.68717540
-      dose_squared -0.05162609 -0.02412282
+        Method         Term Estimate    SE CI.lower CI.upper
+      1    ERC  (Intercept)   -0.880 0.040   -0.959   -0.801
+      2    ERC         dose    0.611 0.039    0.535    0.687
+      3    ERC dose_squared   -0.038 0.007   -0.052   -0.024
 
 # Poisson snapshot: MCML
 
-    Code
-      fit[[method]]$coefficients
-    Output
-       (Intercept)         dose dose_squared 
-       -0.85434971   0.59374567  -0.03682549 
+    structure(list(MCML = c(-0.85434971404576, 0.593745669672536, 
+    -0.0368254864743646)), class = "data.frame", row.names = c("(Intercept)", 
+    "dose", "dose_squared"))
+
+---
+
+    c("(Intercept)" = 0.0385394894778423, dose = 0.0345033491570035, 
+    dose_squared = 0.00580625643204904)
+
+---
+
+    structure(list(lower = c(-0.929885725404891, 0.526120347978798, 
+    -0.0482055399661847), upper = c(-0.778813702686629, 0.661370991366273, 
+    -0.0254454329825444)), class = "data.frame", row.names = c("(Intercept)", 
+    "dose", "dose_squared"))
 
 ---
 
     Code
-      fit[[method]]$sd
+      print(summary(fit)$summary_table, digits = 2)
     Output
-       (Intercept)         dose dose_squared 
-       0.038539489  0.034503349  0.005806256 
-
----
-
-    Code
-      fit[[method]]$CI
-    Output
-                         lower       upper
-      (Intercept)  -0.92988573 -0.77881370
-      dose          0.52612035  0.66137099
-      dose_squared -0.04820554 -0.02544543
+        Method         Term Estimate     SE CI.lower CI.upper
+      1   MCML  (Intercept)   -0.854 0.0385   -0.930   -0.779
+      2   MCML         dose    0.594 0.0345    0.526    0.661
+      3   MCML dose_squared   -0.037 0.0058   -0.048   -0.025
 
 # Poisson snapshot: FMA
 
-    Code
-      fit[[method]]$coefficients
-    Output
-       (Intercept)         dose dose_squared 
-       -0.85774451   0.59961048  -0.03827769 
+    structure(list(FMA = c(-0.85774451193125, 0.599610478857139, 
+    -0.0382776866437891)), class = "data.frame", row.names = c("(Intercept)", 
+    "dose", "dose_squared"))
+
+---
+
+    c("(Intercept)" = 0.0400221044672458, dose = 0.0391061771073553, 
+    dose_squared = 0.0072962645111157)
+
+---
+
+    structure(list(lower = c(-0.937639840406445, 0.527981485004092, 
+    -0.0562889521857883), upper = c(-0.780338412722336, 0.685022704940847, 
+    -0.0259222692708027)), class = "data.frame", row.names = c("(Intercept)", 
+    "dose", "dose_squared"))
 
 ---
 
     Code
-      fit[[method]]$sd
+      print(summary(fit)$summary_table, digits = 2)
     Output
-       (Intercept)         dose dose_squared 
-       0.040022104  0.039106177  0.007296265 
-
----
-
-    Code
-      fit[[method]]$CI
-    Output
-                         lower       upper
-      (Intercept)  -0.93763984 -0.78033841
-      dose          0.52798149  0.68502270
-      dose_squared -0.05628895 -0.02592227
+        Method         Term Estimate     SE CI.lower CI.upper
+      1    FMA  (Intercept)   -0.858 0.0400   -0.938   -0.780
+      2    FMA         dose    0.600 0.0391    0.528    0.685
+      3    FMA dose_squared   -0.038 0.0073   -0.056   -0.026
 
 # Poisson snapshot: BMA
 
-    Code
-      fit[[method]]$coefficients
-    Output
-       (Intercept)         dose dose_squared 
-       -0.81604201   0.54829635  -0.03046823 
+    structure(list(BMA = c(-0.816042010970857, 0.548296349764407, 
+    -0.030468230010967)), class = "data.frame", row.names = c("(Intercept)", 
+    "dose", "dose_squared"))
+
+---
+
+    c("(Intercept)" = 0.0848227674909227, dose = 0.102316694541126, 
+    dose_squared = 0.0174258321558769)
+
+---
+
+    structure(list(lower = c(-0.936287928910797, 0.327186090023886, 
+    -0.0575862008232684), upper = c(-0.628417092320246, 0.703246734058374, 
+    0.00519617749309753)), class = "data.frame", row.names = c("(Intercept)", 
+    "dose", "dose_squared"))
 
 ---
 
     Code
-      fit[[method]]$sd
+      print(summary(fit)$summary_table, digits = 2)
     Output
-       (Intercept)         dose dose_squared 
-        0.08482277   0.10231669   0.01742583 
-
----
-
-    Code
-      fit[[method]]$CI
-    Output
-                        lower        upper
-      (Intercept)  -0.9362879 -0.628417092
-      dose          0.3271861  0.703246734
-      dose_squared -0.0575862  0.005196177
+        Method         Term Estimate    SE CI.lower CI.upper Rhat n.eff
+      1    BMA  (Intercept)    -0.82 0.085   -0.936  -0.6284  1.4     7
+      2    BMA         dose     0.55 0.102    0.327   0.7032  1.8     4
+      3    BMA dose_squared    -0.03 0.017   -0.058   0.0052  1.8     4
 

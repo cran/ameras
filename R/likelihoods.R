@@ -20,7 +20,7 @@ loglik.binomial <- function(
   }
   if (ERC & length(D) > 1) {
     stop(
-      "ERC only works with one supplied dose (i.e., the mean across replicates)"
+      "ERC only works with one supplied dose (i.e., the mean across realizations)"
     )
   }
   # doseRRmod = ERR or EXP
@@ -255,7 +255,7 @@ loglik.poisson.erc <- function(
     stop("Parameter vector length mismatch")
   }
   #if(ERC & is.null(Kmat)) stop("Kmat necessary for ERC")
-  #if(ERC & length(D)>1) stop("ERC only works with one supplied dose (i.e., the mean across replicates)")
+  #if(ERC & length(D)>1) stop("ERC only works with one supplied dose (i.e., the mean across realizations)")
 
   dosemat <- as.matrix(data[, D])
 
@@ -396,7 +396,7 @@ loglik.gaussian <- function(
   }
   if (ERC & length(D) > 1) {
     stop(
-      "ERC only works with one supplied dose (i.e., the mean across replicates)"
+      "ERC only works with one supplied dose (i.e., the mean across realizations)"
     )
   }
 
@@ -488,10 +488,7 @@ loglik.gaussian <- function(
         diag(1, nrow = nrow(data), ncol = nrow(data)))
     diag(mymat) <- diag(mymat) + dmdd2 / sigma^2 * (data[, Y] - mus)
 
-    #res <- compute_weighted_sum_kahan(dmdd, dmdd2, data[,Y]-mus, Kmat, sigma)
-
     return(-1 * (ls + log(max(1 + .5 * sum(mymat * Kmat), loglim))))
-    #return(-1*(l+log(max(1+.5*res,loglim))))
   } else {
     return(-1 * ls)
   }
@@ -506,6 +503,7 @@ loglik.clogit <- function(
   M = NULL,
   doseRRmod,
   designmat,
+  set_members = NULL,
   data,
   deg = 1,
   ERC = FALSE,
@@ -524,7 +522,7 @@ loglik.clogit <- function(
   }
   if (ERC & length(D) > 1) {
     stop(
-      "ERC only works with one supplied dose (i.e., the mean across replicates)"
+      "ERC only works with one supplied dose (i.e., the mean across realizations)"
     )
   }
 
@@ -604,18 +602,16 @@ loglik.clogit <- function(
     tmp <- c(dldd_clogit(designmat, RRs))
     dldd <- drdd / RRs * (data[, status] == 1) - tmp * drdd
 
-    mymat <- compute_ERCmatrix_clogit(
-      designmat,
-      RRs,
-      drdd,
-      drdd2,
-      as.integer(data[, status])
+    erc_sum <- compute_ERCsum_clogit(
+      set_members = set_members,
+      RRs = RRs,
+      drdd = drdd,
+      drdd2 = drdd2,
+      status = as.integer(data[, status]),
+      Kmat = Kmat
     )
 
-    return(
-      -1 *
-        (ls + log(max(1 + .5 * sum((tcrossprod(dldd) + mymat) * Kmat), loglim)))
-    )
+    return(-1 * (ls + log(max(1 + .5 * erc_sum, loglim))))
   } else {
     return(-1 * ls)
   }
@@ -648,7 +644,7 @@ loglik.prophaz <- function(
   }
   if (ERC & length(D) > 1) {
     stop(
-      "ERC only works with one supplied dose (i.e., the mean across replicates)"
+      "ERC only works with one supplied dose (i.e., the mean across realizations)"
     )
   }
 
@@ -761,18 +757,20 @@ loglik.prophaz <- function(
     tmp <- c(dldd_prophaz(entry_t2, exit_t, status_ord, RR_exit))
     dldd <- drdd / RR_exit * (status_ord == 1) - tmp * drdd
 
-    mymat <- compute_ERCmatrix_prophaz(
-      entry_t2,
-      exit_t,
-      status_ord,
-      RR_exit,
-      drdd,
-      drdd2
+    erc_sum <- compute_ERCsum_prophaz(
+      entry_t = as.double(entry_t2),
+      exit_t = as.double(exit_t),
+      status_ord = as.integer(status_ord),
+      RRs = as.double(RR_exit),
+      drdd = as.double(drdd),
+      drdd2 = as.double(drdd2),
+      Kmat = Kmat,
+      dldd = as.double(dldd)
     )
 
     return(
       -1 *
-        (ls + log(max(1 + .5 * sum((tcrossprod(dldd) + mymat) * Kmat), loglim)))
+        (ls + log(max(1 + .5 * erc_sum, loglim)))
     )
   } else {
     return(-1 * ls)
@@ -802,7 +800,7 @@ loglik.multinomial <- function(
   }
   if (ERC & length(D) > 1) {
     stop(
-      "ERC only works with one supplied dose (i.e., the mean across replicates)"
+      "ERC only works with one supplied dose (i.e., the mean across realizations)"
     )
   }
 
@@ -860,7 +858,7 @@ loglik.multinomial <- function(
     Asums_array <- array(Asums, dim = c(nrow(data), length(D), 1))
     Asums_array <- Asums_array[,, rep(1, Z), drop = FALSE]
 
-    prob_array <- myarray / Asums_array # array with probabilities, indexed by individual x dose replicate x outcome category
+    prob_array <- myarray / Asums_array # array with probabilities, indexed by individual x dose realization x outcome category
 
     Ymat <- as.matrix(model.matrix(~ data[, Y] - 1))
     Y_array <- array(Ymat, dim = c(nrow(data), 1, Z))

@@ -5,11 +5,13 @@
 
 [![R-CMD-check](https://github.com/sanderroberti/ameras/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sanderroberti/ameras/actions/workflows/R-CMD-check.yaml)
 [![](https://cranlogs.r-pkg.org/badges/grand-total/ameras)](https://CRAN.R-project.org/package=ameras)
+[![Codecov test
+coverage](https://codecov.io/gh/sanderroberti/ameras/graph/badge.svg)](https://app.codecov.io/gh/sanderroberti/ameras)
 <!-- badges: end -->
 
 The goal of ameras is to provide a user-friendly interface to analyze
-association studies with multiple replicates of a noisy exposure using a
-variety of methods. ameras supports continuous, count, binary,
+association studies with multiple realizations of a noisy exposure using
+a variety of methods. ameras supports continuous, count, binary,
 multinomial, and right-censored time-to-event outcomes. For binary
 outcomes, the nested case-control design is also accommodated. Besides
 the common exponential relative risk model $RR=\exp(\beta D)$ for the
@@ -63,7 +65,7 @@ library(ameras)
 #> 
 #>     declare
 data(data, package="ameras")
-ecdfplot(data, paste0("V", 1:10))
+ecdfplot(data, paste0("V", 1:10), show.mean = FALSE)
 ```
 
 <img src="man/figures/README-unnamed-chunk-2-1.png" alt="" width="100%" />
@@ -71,6 +73,7 @@ ecdfplot(data, paste0("V", 1:10))
 Next, we apply all available methods to the data:
 
 ``` r
+set.seed(12345) # For reproducibility
 fit <- ameras(Y.binomial~dose(V1:V10), data, family="binomial", 
               methods=c("RC","ERC","MCML", "FMA", "BMA"))
 #> Note: BMA may require extensive computation time
@@ -105,16 +108,16 @@ summary(fit)
 #> ameras(formula = Y.binomial ~ dose(V1:V10), data = data, family = "binomial", 
 #>     methods = c("RC", "ERC", "MCML", "FMA", "BMA"))
 #> 
-#> Total run time: 52.3 seconds
+#> Total run time: 50.3 seconds
 #> 
 #> Runtime in seconds by method:
 #> 
 #>  Method Runtime
 #>      RC     0.0
-#>     ERC     8.0
+#>     ERC     6.6
 #>    MCML     0.1
 #>     FMA     0.2
-#>     BMA    44.0
+#>     BMA    43.4
 #> 
 #> Summary of coefficients by method:
 #> 
@@ -125,10 +128,10 @@ summary(fit)
 #>     ERC        dose   0.8214 0.14304   NA      NA
 #>    MCML (Intercept)  -0.8758 0.07323   NA      NA
 #>    MCML        dose   0.7910 0.13644   NA      NA
-#>     FMA (Intercept)  -0.8756 0.07307   NA      NA
-#>     FMA        dose   0.7910 0.13633   NA      NA
-#>     BMA (Intercept)  -0.8765 0.07369 1.00  972.00
-#>     BMA        dose   0.7969 0.13948 1.00 1076.00
+#>     FMA (Intercept)  -0.8760 0.07320   NA      NA
+#>     FMA        dose   0.7917 0.13656   NA      NA
+#>     BMA (Intercept)  -0.8736 0.07174 1.00 1024.00
+#>     BMA        dose   0.7911 0.13323 1.00  999.00
 #> 
 #> Note: confidence intervals not yet computed. Use confint() to add them.
 ```
@@ -142,30 +145,30 @@ summary(fit)
 #> ameras(formula = Y.binomial ~ dose(V1:V10), data = data, family = "binomial", 
 #>     methods = c("RC", "ERC", "MCML", "FMA", "BMA"))
 #> 
-#> Total run time: 52.3 seconds
+#> Total run time: 50.3 seconds
 #> 
 #> Runtime in seconds by method:
 #> 
 #>  Method Runtime
 #>      RC     0.0
-#>     ERC     8.0
+#>     ERC     6.6
 #>    MCML     0.1
 #>     FMA     0.2
-#>     BMA    44.0
+#>     BMA    43.4
 #> 
 #> Summary of coefficients by method:
 #> 
-#>  Method        Term Estimate      SE CI.lowerbound CI.upperbound Rhat   n.eff
-#>      RC (Intercept)  -0.8847 0.07378       -1.0293       -0.7401   NA      NA
-#>      RC        dose   0.8020 0.13751        0.5324        1.0715   NA      NA
-#>     ERC (Intercept)  -0.8849 0.07477       -1.0314       -0.7384   NA      NA
-#>     ERC        dose   0.8214 0.14304        0.5411        1.1018   NA      NA
-#>    MCML (Intercept)  -0.8758 0.07323       -1.0193       -0.7323   NA      NA
-#>    MCML        dose   0.7910 0.13644        0.5236        1.0584   NA      NA
-#>     FMA (Intercept)  -0.8756 0.07307       -1.0187       -0.7331   NA      NA
-#>     FMA        dose   0.7910 0.13633        0.5241        1.0590   NA      NA
-#>     BMA (Intercept)  -0.8765 0.07369       -1.0265       -0.7410 1.00  972.00
-#>     BMA        dose   0.7969 0.13948        0.5502        1.0904 1.00 1076.00
+#>  Method        Term Estimate      SE CI.lower CI.upper Rhat   n.eff
+#>      RC (Intercept)  -0.8847 0.07378  -1.0293  -0.7401   NA      NA
+#>      RC        dose   0.8020 0.13751   0.5324   1.0715   NA      NA
+#>     ERC (Intercept)  -0.8849 0.07477  -1.0314  -0.7384   NA      NA
+#>     ERC        dose   0.8214 0.14304   0.5411   1.1018   NA      NA
+#>    MCML (Intercept)  -0.8758 0.07323  -1.0193  -0.7323   NA      NA
+#>    MCML        dose   0.7910 0.13644   0.5236   1.0584   NA      NA
+#>     FMA (Intercept)  -0.8760 0.07320  -1.0199  -0.7327   NA      NA
+#>     FMA        dose   0.7917 0.13656   0.5241   1.0594   NA      NA
+#>     BMA (Intercept)  -0.8736 0.07174  -1.0185  -0.7350 1.00 1024.00
+#>     BMA        dose   0.7911 0.13323   0.5520   1.0798 1.00  999.00
 ```
 
 See the vignettes for additional details on model fitting, confidence

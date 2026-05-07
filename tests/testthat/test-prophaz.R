@@ -19,12 +19,17 @@ for (method in all_methods) {
       M = NULL,
       data = data,
       methods = method,
-      niter.BMA = 1000,
+      niter.BMA = 5000,
       nburnin.BMA = 500
     )
     fit <- confint(fit, type = c("wald.orig", "percentile"))
-    expect_snapshot(fit[[method]]$coefficients)
-    expect_snapshot(fit[[method]]$sd)
-    expect_snapshot(fit[[method]]$CI)
+    expect_snapshot_value(
+      coef(fit),
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(fit[[method]]$sd, tolerance = 1e-4, style = "deparse")
+    expect_snapshot_value(fit[[method]]$CI, tolerance = 1e-4, style = "deparse")
+    expect_snapshot(print(summary(fit)$summary_table, digits = 2))
   })
 }

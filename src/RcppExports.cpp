@@ -37,37 +37,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// compute_ERCmatrix_prophaz
-Eigen::MatrixXd compute_ERCmatrix_prophaz(Eigen::Map<Eigen::VectorXd>& entry_t, Eigen::Map<Eigen::VectorXd>& exit_t, Eigen::Map<Eigen::VectorXi>& status_ord, Eigen::Map<Eigen::VectorXd>& RRs, Eigen::Map<Eigen::VectorXd>& drdd, Eigen::Map<Eigen::VectorXd>& drdd2);
-RcppExport SEXP _ameras_compute_ERCmatrix_prophaz(SEXP entry_tSEXP, SEXP exit_tSEXP, SEXP status_ordSEXP, SEXP RRsSEXP, SEXP drddSEXP, SEXP drdd2SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type entry_t(entry_tSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type exit_t(exit_tSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXi>& >::type status_ord(status_ordSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type RRs(RRsSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type drdd(drddSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type drdd2(drdd2SEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_ERCmatrix_prophaz(entry_t, exit_t, status_ord, RRs, drdd, drdd2));
-    return rcpp_result_gen;
-END_RCPP
-}
-// compute_ERCmatrix_clogit
-Eigen::MatrixXd compute_ERCmatrix_clogit(Eigen::Map<Eigen::MatrixXd>& designmat, Eigen::Map<Eigen::VectorXd>& RRs, Eigen::Map<Eigen::VectorXd>& drdd, Eigen::Map<Eigen::VectorXd>& drdd2, Eigen::Map<Eigen::VectorXi>& status);
-RcppExport SEXP _ameras_compute_ERCmatrix_clogit(SEXP designmatSEXP, SEXP RRsSEXP, SEXP drddSEXP, SEXP drdd2SEXP, SEXP statusSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd>& >::type designmat(designmatSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type RRs(RRsSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type drdd(drddSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type drdd2(drdd2SEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXi>& >::type status(statusSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_ERCmatrix_clogit(designmat, RRs, drdd, drdd2, status));
-    return rcpp_result_gen;
-END_RCPP
-}
 // loglik_prophaz_rcpp
 Eigen::VectorXd loglik_prophaz_rcpp(const Eigen::VectorXd& exit_t, const Eigen::VectorXd& entry_t, const Eigen::MatrixXd& RR_entry, const Eigen::MatrixXd& RR_exit, const Eigen::VectorXi& status_ord, double loglim);
 RcppExport SEXP _ameras_loglik_prophaz_rcpp(SEXP exit_tSEXP, SEXP entry_tSEXP, SEXP RR_entrySEXP, SEXP RR_exitSEXP, SEXP status_ordSEXP, SEXP loglimSEXP) {
@@ -81,6 +50,40 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Eigen::VectorXi& >::type status_ord(status_ordSEXP);
     Rcpp::traits::input_parameter< double >::type loglim(loglimSEXP);
     rcpp_result_gen = Rcpp::wrap(loglik_prophaz_rcpp(exit_t, entry_t, RR_entry, RR_exit, status_ord, loglim));
+    return rcpp_result_gen;
+END_RCPP
+}
+// compute_ERCsum_clogit
+double compute_ERCsum_clogit(Rcpp::List& set_members, Eigen::Map<Eigen::VectorXd>& RRs, Eigen::Map<Eigen::VectorXd>& drdd, Eigen::Map<Eigen::VectorXd>& drdd2, Eigen::Map<Eigen::VectorXi>& status, Eigen::Map<Eigen::MatrixXd>& Kmat);
+RcppExport SEXP _ameras_compute_ERCsum_clogit(SEXP set_membersSEXP, SEXP RRsSEXP, SEXP drddSEXP, SEXP drdd2SEXP, SEXP statusSEXP, SEXP KmatSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List& >::type set_members(set_membersSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type RRs(RRsSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type drdd(drddSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type drdd2(drdd2SEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXi>& >::type status(statusSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd>& >::type Kmat(KmatSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_ERCsum_clogit(set_members, RRs, drdd, drdd2, status, Kmat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// compute_ERCsum_prophaz
+double compute_ERCsum_prophaz(Eigen::Map<Eigen::VectorXd>& entry_t, Eigen::Map<Eigen::VectorXd>& exit_t, Eigen::Map<Eigen::VectorXi>& status_ord, Eigen::Map<Eigen::VectorXd>& RRs, Eigen::Map<Eigen::VectorXd>& drdd, Eigen::Map<Eigen::VectorXd>& drdd2, Eigen::Map<Eigen::MatrixXd>& Kmat, Eigen::Map<Eigen::VectorXd>& dldd);
+RcppExport SEXP _ameras_compute_ERCsum_prophaz(SEXP entry_tSEXP, SEXP exit_tSEXP, SEXP status_ordSEXP, SEXP RRsSEXP, SEXP drddSEXP, SEXP drdd2SEXP, SEXP KmatSEXP, SEXP dlddSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type entry_t(entry_tSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type exit_t(exit_tSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXi>& >::type status_ord(status_ordSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type RRs(RRsSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type drdd(drddSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type drdd2(drdd2SEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd>& >::type Kmat(KmatSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd>& >::type dldd(dlddSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_ERCsum_prophaz(entry_t, exit_t, status_ord, RRs, drdd, drdd2, Kmat, dldd));
     return rcpp_result_gen;
 END_RCPP
 }

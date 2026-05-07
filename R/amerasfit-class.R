@@ -34,7 +34,7 @@ print.amerasfit <- function(x, digits = max(3, getOption("digits") - 3), ...) {
   print(x$call)
 
   cat(paste0("\nNumber of rows: ", x$num.rows, "\n"))
-  cat(paste0("Number of dose replicates: ", x$num.replicates, "\n"))
+  cat(paste0("Number of dose realizations: ", x$num.realizations, "\n"))
 
   cat(paste0("\nTotal run time: ", total_runtime_seconds, " seconds\n\n"))
 
@@ -105,15 +105,15 @@ summary.amerasfit <- function(object, ...) {
 
       if (object$CI.computed) {
         CI <- y$CI
-        CI.lowerbound <- CI.upperbound <- coef * NA
-        CI.lowerbound[match(rownames(CI), names(coef))] <- CI$lower
-        CI.upperbound[match(rownames(CI), names(coef))] <- CI$upper
+        CI.lower <- CI.upper <- coef * NA
+        CI.lower[match(rownames(CI), names(coef))] <- CI$lower
+        CI.upper[match(rownames(CI), names(coef))] <- CI$upper
 
         res <- cbind(
           res,
           data.frame(
-            CI.lowerbound = CI.lowerbound,
-            CI.upperbound = CI.upperbound
+            CI.lower = CI.lower,
+            CI.upper = CI.upper
           )
         )
         # Add p-value columns for profile likelihood intervals. If not used, these will be removed after

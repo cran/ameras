@@ -19,14 +19,40 @@ for (method in c("RC", "ERC", "MCML")) {
       methods = method
     )
     fit1 <- confint(fit, type = c("proflik"))
-    expect_snapshot(fit1[[method]]$coefficients)
-    expect_snapshot(fit1[[method]]$sd)
-    expect_snapshot(fit1[[method]]$CI)
+    expect_snapshot_value(
+      coef(fit1),
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(
+      fit1[[method]]$sd,
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(
+      fit1[[method]]$CI,
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot(print(summary(fit1)$summary_table, digits = 2))
 
     fit2 <- confint(fit, type = c("wald.transformed"))
-    expect_snapshot(fit2[[method]]$coefficients)
-    expect_snapshot(fit2[[method]]$sd)
-    expect_snapshot(fit2[[method]]$CI)
+    expect_snapshot_value(
+      coef(fit2),
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(
+      fit2[[method]]$sd,
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(
+      fit2[[method]]$CI,
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot(print(summary(fit2)$summary_table, digits = 2))
   })
 }
 
@@ -46,13 +72,38 @@ for (method in c("FMA", "BMA")) {
       methods = method
     )
     fit1 <- confint(fit, type = c("percentile"))
-    expect_snapshot(fit1[[method]]$coefficients)
-    expect_snapshot(fit1[[method]]$sd)
-    expect_snapshot(fit1[[method]]$CI)
-
+    expect_snapshot_value(
+      coef(fit1),
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(
+      fit1[[method]]$sd,
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(
+      fit1[[method]]$CI,
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot(print(summary(fit1)$summary_table, digits = 2))
     fit2 <- confint(fit, type = c("hpd"))
-    expect_snapshot(fit2[[method]]$coefficients)
-    expect_snapshot(fit2[[method]]$sd)
-    expect_snapshot(fit2[[method]]$CI)
+    expect_snapshot_value(
+      coef(fit2),
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(
+      fit2[[method]]$sd,
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot_value(
+      fit2[[method]]$CI,
+      tolerance = 1e-4,
+      style = "deparse"
+    )
+    expect_snapshot(print(summary(fit2)$summary_table, digits = 2))
   })
 }

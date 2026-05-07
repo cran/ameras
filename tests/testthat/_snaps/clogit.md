@@ -1,125 +1,127 @@
 # clogit snapshot: RC
 
-    Code
-      fit[[method]]$coefficients
-    Output
-              dose dose_squared 
-        0.63693308  -0.04695187 
+    structure(list(RC = c(0.636933079842829, -0.0469518747182343)), class = "data.frame", row.names = c("dose", 
+    "dose_squared"))
+
+---
+
+    c(dose = 0.0994212957461848, dose_squared = 0.0220451378778829
+    )
+
+---
+
+    structure(list(lower = c(0.442070920884002, -0.0901595509931046
+    ), upper = c(0.831795238801657, -0.00374419844336402)), class = "data.frame", row.names = c("dose", 
+    "dose_squared"))
 
 ---
 
     Code
-      fit[[method]]$sd
+      print(summary(fit)$summary_table, digits = 2)
     Output
-              dose dose_squared 
-        0.09942130   0.02204514 
-
----
-
-    Code
-      fit[[method]]$CI
-    Output
-                         lower        upper
-      dose          0.44207092  0.831795239
-      dose_squared -0.09015955 -0.003744198
+        Method         Term Estimate    SE CI.lower CI.upper
+      1     RC         dose    0.637 0.099     0.44   0.8318
+      2     RC dose_squared   -0.047 0.022    -0.09  -0.0037
 
 # clogit snapshot: ERC
 
-    Code
-      fit[[method]]$coefficients
-    Output
-              dose dose_squared 
-        0.21121675   0.05299386 
+    structure(list(ERC = c(0.211216746541785, 0.0529938610513979)), class = "data.frame", row.names = c("dose", 
+    "dose_squared"))
+
+---
+
+    c(dose = 0.0353015895183663, dose_squared = 0.00892501075843195
+    )
+
+---
+
+    structure(list(lower = c(0.142026902488767, 0.0355011614032402
+    ), upper = c(0.280406590594797, 0.0704865606995584)), class = "data.frame", row.names = c("dose", 
+    "dose_squared"))
 
 ---
 
     Code
-      fit[[method]]$sd
+      print(summary(fit)$summary_table, digits = 2)
     Output
-              dose dose_squared 
-       0.035301590  0.008925011 
-
----
-
-    Code
-      fit[[method]]$CI
-    Output
-                        lower      upper
-      dose         0.14202690 0.28040659
-      dose_squared 0.03550116 0.07048656
+        Method         Term Estimate     SE CI.lower CI.upper
+      1    ERC         dose    0.211 0.0353    0.142     0.28
+      2    ERC dose_squared    0.053 0.0089    0.036     0.07
 
 # clogit snapshot: MCML
 
-    Code
-      fit[[method]]$coefficients
-    Output
-              dose dose_squared 
-         0.6680322   -0.0567844 
+    structure(list(MCML = c(0.668032212804173, -0.056784395590818
+    )), class = "data.frame", row.names = c("dose", "dose_squared"
+    ))
+
+---
+
+    c(dose = 0.0981315804650418, dose_squared = 0.0208508161639185
+    )
+
+---
+
+    structure(list(lower = c(0.475697849346696, -0.0976512443203638
+    ), upper = c(0.860366576261649, -0.0159175468612722)), class = "data.frame", row.names = c("dose", 
+    "dose_squared"))
 
 ---
 
     Code
-      fit[[method]]$sd
+      print(summary(fit)$summary_table, digits = 2)
     Output
-              dose dose_squared 
-        0.09813158   0.02085082 
-
----
-
-    Code
-      fit[[method]]$CI
-    Output
-                         lower       upper
-      dose          0.47569785  0.86036658
-      dose_squared -0.09765124 -0.01591755
+        Method         Term Estimate    SE CI.lower CI.upper
+      1   MCML         dose    0.668 0.098    0.476    0.860
+      2   MCML dose_squared   -0.057 0.021   -0.098   -0.016
 
 # clogit snapshot: FMA
 
-    Code
-      fit[[method]]$coefficients
-    Output
-              dose dose_squared 
-        0.66550565  -0.05621879 
+    structure(list(FMA = c(0.665505653115859, -0.0562187934345348
+    )), class = "data.frame", row.names = c("dose", "dose_squared"
+    ))
+
+---
+
+    c(dose = 0.102484025982308, dose_squared = 0.0221437635004394
+    )
+
+---
+
+    structure(list(lower = c(0.460406659549313, -0.0992885679303401
+    ), upper = c(0.863557680009724, -0.01171218044798)), class = "data.frame", row.names = c("dose", 
+    "dose_squared"))
 
 ---
 
     Code
-      fit[[method]]$sd
+      print(summary(fit)$summary_table, digits = 2)
     Output
-              dose dose_squared 
-        0.10248403   0.02214376 
-
----
-
-    Code
-      fit[[method]]$CI
-    Output
-                         lower       upper
-      dose          0.46040666  0.86355768
-      dose_squared -0.09928857 -0.01171218
+        Method         Term Estimate    SE CI.lower CI.upper
+      1    FMA         dose    0.666 0.102    0.460    0.864
+      2    FMA dose_squared   -0.056 0.022   -0.099   -0.012
 
 # clogit snapshot: BMA
 
-    Code
-      fit[[method]]$coefficients
-    Output
-              dose dose_squared 
-        0.62957289  -0.04912569 
+    structure(list(BMA = c(0.62957288938639, -0.0491256940956094)), class = "data.frame", row.names = c("dose", 
+    "dose_squared"))
+
+---
+
+    c(dose = 0.137109688051081, dose_squared = 0.0304239879548994
+    )
+
+---
+
+    structure(list(lower = c(0.363967101239792, -0.0986573570228772
+    ), upper = c(0.858500724121195, 0.00677148649021496)), class = "data.frame", row.names = c("dose", 
+    "dose_squared"))
 
 ---
 
     Code
-      fit[[method]]$sd
+      print(summary(fit)$summary_table, digits = 2)
     Output
-              dose dose_squared 
-        0.13710969   0.03042399 
-
----
-
-    Code
-      fit[[method]]$CI
-    Output
-                         lower       upper
-      dose          0.36396710 0.858500724
-      dose_squared -0.09865736 0.006771486
+        Method         Term Estimate   SE CI.lower CI.upper Rhat n.eff
+      1    BMA         dose    0.630 0.14    0.364   0.8585  3.3    49
+      2    BMA dose_squared   -0.049 0.03   -0.099   0.0068  3.6    29
 
