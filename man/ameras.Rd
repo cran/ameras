@@ -1,7 +1,7 @@
 
 \name{ameras}
 \alias{ameras}
-\title{Analyze multiple exposure realizations}
+\title{Analyze Multiple Exposure Realizations}
 
 \description{
 Fit regression models accounting for exposure uncertainty using multiple Monte Carlo exposure realizations. Six outcome model families are supported. The first is the Gaussian family for continuous outcomes, \deqn{Y_i \sim N(\mu_i, \sigma^2),} with \eqn{\mu_i = \alpha_0 + \bm X_i^T \bm \alpha +\beta_1 D_i+\beta_2 D_i^2 + \bm M_i^T \bm \beta_{m1}D_i + \bm M_i^T \bm \beta_{m2}D_i^2}. Here \eqn{\bm X_i} are covariates, \eqn{D_i} is the exposure with measurement error, and \eqn{\bm M_i} are binary effect modifiers. The quadratic exposure terms and effect modification are optional.
@@ -66,8 +66,8 @@ If \code{methods} contains at least one of RC, ERC, and MCML and at least one of
 \item{prophaz.numints.BMA}{for \code{methods="BMA"} with \code{family="prophaz"}, the number of subintervals with constant baseline hazard (default 10). Cut points are determined based on quantiles of the event time distribution among cases.}
 \item{ERRprior.BMA}{prior for dose-related parameters when \code{doseRRmod="ERR"} or \code{"LINEXP"} and \code{methods="BMA"}.
 Options: \code{"truncated_normal"}, \code{"truncated_horseshoe"}, \code{"truncated_doubleexponential"}, \code{"normal"}, \code{"horseshoe"}, \code{"doubleexponential"}, see Details (default \code{"doubleexponential"}).}
-\item{nburnin.BMA}{number of MCMC burn-in iterations for BMA (default 1,000).}
-\item{niter.BMA}{number of MCMC iterations per chain for BMA (default 5,000).}
+\item{nburnin.BMA}{number of MCMC burn-in iterations for BMA (default 5,000).}
+\item{niter.BMA}{number of MCMC iterations per chain for BMA (default 20,000).}
 \item{nchains.BMA}{number of MCMC chains for BMA (default 2).}
 \item{thin.BMA}{thinning rate for BMA (default 10).}
 \item{included.realizations.BMA}{indices of exposure realizations used in BMA (defaults to all realizations).}
@@ -78,15 +78,24 @@ Options: \code{"truncated_normal"}, \code{"truncated_horseshoe"}, \code{"truncat
 \item{\dots}{other arguments, passed to functions such as \code{transform}.}
 }
 \value{
-The output is an object of class \code{amerasfit}. General components are \code{call} (the function call to \code{ameras}), \code{formula} (the formula object specifying the model), \code{num.rows} (the number of rows in \code{data}), \code{num.realizations} (the number of dose realizations provided), \code{transform} (the used transformation function, if applicable), \code{transform.jacobian} (the used Jacobian function for the transformation, if applicable), \code{other.args} (any other arguments passed to \dots), \code{model} (a list containing the specified model components parsed from the formula), \code{CI.computed} (logical, whether confidence intervals have been attached by \code{\link[=confint.amerasfit]{confint}}), and \code{data} (either the data frame used for model fitting when \code{keep.data=TRUE} or \code{NULL} otherwise).
+The output is an object of class \code{amerasfit}. General components are \code{call} 
+(the function call to \code{ameras}), \code{formula} (the formula object specifying 
+the model), \code{num.rows} (the number of rows in \code{data}), \code{num.realizations} 
+(the number of dose realizations provided), \code{transform} (the used transformation 
+function, if applicable), \code{transform.jacobian} (the used Jacobian function for 
+the transformation, if applicable), \code{other.args} (any other arguments passed to 
+\dots), \code{model} (a list containing the specified model components parsed from 
+the formula), \code{CI.computed} (logical, whether confidence intervals have been 
+attached by \code{\link[=confint.amerasfit]{confint}}), and \code{data} (either the 
+data frame used for model fitting when \code{keep.data=TRUE} or \code{NULL} otherwise).
 
 For each method supplied to \code{methods}, the output contains a list with components:
   \item{coefficients}{named vector of model coefficients.}
   \item{sd}{named vector of standard deviations.}
+  \item{vcov}{covariance matrix for the full parameter vector. Based on the observed information (negative second derivative of log-likelihood) for RC, ERC, and MCML, and on the obtained samples for FMA and BMA.}
   \item{runtime}{string with the runtime in seconds.}
   
 For RC, ERC, and MCML  the following additional output is included:
-  \item{vcov}{covariance matrix for the full parameter vector.}
   \item{optim}{a list object with results returned by optim. Components are \code{par} (raw parameters before applying a transformation if applicable), \code{hessian} (Hessian matrix for \code{par}), \code{convergence} (convergence code with 0 indicating convergence and 1 indicating that the maximal number of iterations was reached), and \code{counts} (the number of likelihood function evaluations used during optimization).}
   \item{loglik}{log-likelihood value at the optimum.}
 
@@ -100,7 +109,8 @@ For BMA  the output additionally contains:
   \item{prophaz.timepoints}{for \code{family="prophaz"}, time points defining the intervals on which the estimated baseline hazards is constant; these are \code{prophaz.numints.BMA + 1} time points covering the interval \code{(min(entry), max(exit))}, based on quantiles among observed event times. See Details.}
 
 Finally, for FMA the output additionally contains:
-  \item{samples}{the samples generated from the normal distributions associated with each dose realization.}
+  \item{samples}{data frame with samples generated from the normal distributions associated with parameters estimated for each dose realization.}
+  \item{weigths}{vector of weights corresponding to the models fit to each included realization}
   \item{included.samples}{the total number of samples included.}
   \item{included.realizations}{indices of realization exposures that were included to obtain results. Fits without a valid variance estimate (i.e., non-invertible Hessian or inverse that is not positive definite) or that reach the maximal number of iterations without convergence are filtered out and not used to obtain results. }
 

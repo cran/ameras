@@ -485,8 +485,18 @@ ameras.mcml <- function(
           rcond(fit$hessian) > .Machine$double.eps &
           all(eigen(fit$hessian)$values > 0)
       ) {
-        jac <- transform.jacobian(fit$par, ...)
-        vcov <- jac %*% solve(fit$hessian) %*% t(jac)
+        cholH <- tryCatch(chol(fit$hessian), error = function(e) NULL)
+        if (!is.null(cholH)) {
+          jac <- transform.jacobian(fit$par, ...)
+          tmpsolve <- backsolve(cholH, t(jac), transpose = TRUE)
+          vcov <- crossprod(tmpsolve)
+          #vcov <- jac %*% MASS::ginv(fit$hessian) %*% t(jac)
+        } else {
+          warning(
+            "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
+          )
+          vcov <- matrix(NA, ncol = length(parnames), nrow = length(parnames))
+        }
       } else {
         warning(
           "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
@@ -503,7 +513,7 @@ ameras.mcml <- function(
         rcond(fit$hessian) > .Machine$double.eps &
         all(eigen(fit$hessian)$values > 0)
     ) {
-      vcov <- solve(fit$hessian)
+      vcov <- chol2inv(chol(fit$hessian)) #MASS::ginv(fit$hessian)
     } else {
       warning(
         "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
@@ -561,7 +571,7 @@ ameras.rc <- function(
   control = list(reltol = 1e-10),
   ...
 ) {
-  if (ERC & family != "poisson") {
+  if (ERC & family != "poisson" & family != "prophaz") {
     Kmat <- cov(t(data[, dosevars]))
   } else {
     Kmat <- NULL
@@ -757,6 +767,13 @@ ameras.rc <- function(
       inpar <- rep(0, 1 + length(X) + length(M) * deg + deg)
     }
     if (ERC) {
+      dosemat_poisson <- as.matrix(data[, dosevars, drop = FALSE])
+      storage.mode(dosemat_poisson) <- "double"
+      Xc <- dosemat_poisson - data[, "rcdose_ameras"]
+      Kmat_diag <- rowSums(Xc^2) / (ncol(dosemat_poisson) - 1)
+      rm(dosemat_poisson)
+      gc()
+
       fit <- optim(
         inpar,
         loglik.poisson.erc,
@@ -772,6 +789,8 @@ ameras.rc <- function(
         transform = transform,
         method = optim.method,
         control = control,
+        Xc = Xc,
+        Kmat_diag = Kmat_diag,
         ...
       )
     } else {
@@ -811,6 +830,8 @@ ameras.rc <- function(
           transform = transform,
           method = "BFGS",
           control = control,
+          Xc = Xc,
+          Kmat_diag = Kmat_diag,
           ...
         )
       } else {
@@ -850,6 +871,8 @@ ameras.rc <- function(
         deg = deg,
         loglim = loglim,
         transform = transform,
+        Xc = Xc,
+        Kmat_diag = Kmat_diag,
         ...
       )
     } else {
@@ -1086,34 +1109,68 @@ ameras.rc <- function(
       inpar <- rep(0, length(X) + length(M) * deg + deg)
     }
 
+    if (ERC) {
+      ord_exit <- order(data[[exit]])
+      dosemat_ord <- as.matrix(
+        data[ord_exit, dosevars, drop = FALSE]
+      )
+      storage.mode(dosemat_ord) <- "double"
+      Xc_ord <- dosemat_ord - data[ord_exit, "rcdose_ameras"]
+      Kmat_diag_ord <- rowSums(Xc_ord^2) / (ncol(dosemat_ord) - 1)
+      rm(dosemat_ord)
+      gc()
+    }
+
     if (length(X) + length(M) * deg + deg == 1) {
       # Optimize 1-dimensional model: use optimize instead of optim
-      fit0 <- optimize(
-        f = loglik.prophaz,
-        lower = -20,
-        upper = 5,
-        D = "rcdose_ameras",
-        status = status,
-        X = X,
-        M = M,
-        doseRRmod = doseRRmod,
-        entry = entry,
-        exit = exit,
-        data = data,
-        deg = deg,
-        ERC = ERC,
-        Kmat = Kmat,
-        loglim = loglim,
-        transform = transform,
-        ...
-      )
-      fit <- list(
-        par = fit0$minimum,
-        value = fit0$objective,
-        convergence = 0,
-        hessian = numDeriv::hessian(
-          func = loglik.prophaz,
-          x = fit0$minimum,
+      if (ERC) {
+        fit0 <- optimize(
+          f = loglik.prophaz.erc,
+          lower = -20,
+          upper = 5,
+          D = dosevars,
+          status = status,
+          X = X,
+          M = M,
+          doseRRmod = doseRRmod,
+          entry = entry,
+          exit = exit,
+          data = data,
+          deg = deg,
+          loglim = loglim,
+          transform = transform,
+          Xc_ord = Xc_ord,
+          Kmat_diag_ord = Kmat_diag_ord,
+          ...
+        )
+        fit <- list(
+          par = fit0$minimum,
+          value = fit0$objective,
+          convergence = 0,
+          hessian = numDeriv::hessian(
+            func = loglik.prophaz.erc,
+            x = fit0$minimum,
+            D = dosevars,
+            status = status,
+            X = X,
+            M = M,
+            doseRRmod = doseRRmod,
+            entry = entry,
+            exit = exit,
+            data = data,
+            deg = deg,
+            loglim = loglim,
+            transform = transform,
+            Xc_ord = Xc_ord,
+            Kmat_diag_ord = Kmat_diag_ord,
+            ...
+          )
+        )
+      } else {
+        fit0 <- optimize(
+          f = loglik.prophaz,
+          lower = -20,
+          upper = 5,
           D = "rcdose_ameras",
           status = status,
           X = X,
@@ -1123,39 +1180,57 @@ ameras.rc <- function(
           exit = exit,
           data = data,
           deg = deg,
-          ERC = ERC,
-          Kmat = Kmat,
           loglim = loglim,
           transform = transform,
           ...
         )
-      )
+        fit <- list(
+          par = fit0$minimum,
+          value = fit0$objective,
+          convergence = 0,
+          hessian = numDeriv::hessian(
+            func = loglik.prophaz,
+            x = fit0$minimum,
+            D = "rcdose_ameras",
+            status = status,
+            X = X,
+            M = M,
+            doseRRmod = doseRRmod,
+            entry = entry,
+            exit = exit,
+            data = data,
+            deg = deg,
+            loglim = loglim,
+            transform = transform,
+            ...
+          )
+        )
+      }
     } else {
-      fit <- optim(
-        inpar,
-        loglik.prophaz,
-        D = "rcdose_ameras",
-        status = status,
-        X = X,
-        M = M,
-        doseRRmod = doseRRmod,
-        entry = entry,
-        exit = exit,
-        data = data,
-        deg = deg,
-        ERC = ERC,
-        Kmat = Kmat,
-        loglim = loglim,
-        transform = transform,
-        method = optim.method,
-        control = control,
-        ...
-      )
-
-      if (optim.method == "Nelder-Mead") {
-        count0 <- fit$counts
+      if (ERC) {
         fit <- optim(
-          fit$par,
+          inpar,
+          loglik.prophaz.erc,
+          D = dosevars,
+          status = status,
+          X = X,
+          M = M,
+          doseRRmod = doseRRmod,
+          entry = entry,
+          exit = exit,
+          data = data,
+          deg = deg,
+          loglim = loglim,
+          transform = transform,
+          method = optim.method,
+          control = control,
+          Xc_ord = Xc_ord,
+          Kmat_diag_ord = Kmat_diag_ord,
+          ...
+        )
+      } else {
+        fit <- optim(
+          inpar,
           loglik.prophaz,
           D = "rcdose_ameras",
           status = status,
@@ -1166,35 +1241,98 @@ ameras.rc <- function(
           exit = exit,
           data = data,
           deg = deg,
-          ERC = ERC,
-          Kmat = Kmat,
           loglim = loglim,
           transform = transform,
-          method = "BFGS",
+          method = optim.method,
           control = control,
           ...
         )
+      }
+
+      if (optim.method == "Nelder-Mead") {
+        count0 <- fit$counts
+
+        if (ERC) {
+          fit <- optim(
+            fit$par,
+            loglik.prophaz.erc,
+            D = dosevars,
+            status = status,
+            X = X,
+            M = M,
+            doseRRmod = doseRRmod,
+            entry = entry,
+            exit = exit,
+            data = data,
+            deg = deg,
+            loglim = loglim,
+            transform = transform,
+            method = "BFGS",
+            control = control,
+            Xc_ord = Xc_ord,
+            Kmat_diag_ord = Kmat_diag_ord,
+            ...
+          )
+        } else {
+          fit <- optim(
+            fit$par,
+            loglik.prophaz,
+            D = "rcdose_ameras",
+            status = status,
+            X = X,
+            M = M,
+            doseRRmod = doseRRmod,
+            entry = entry,
+            exit = exit,
+            data = data,
+            deg = deg,
+            loglim = loglim,
+            transform = transform,
+            method = "BFGS",
+            control = control,
+            ...
+          )
+        }
         fit$counts <- replace(count0, is.na(count0), 0) +
           replace(fit$counts, is.na(fit$counts), 0)
       }
-      fit$hessian <- numDeriv::hessian(
-        func = loglik.prophaz,
-        x = fit$par,
-        D = "rcdose_ameras",
-        status = status,
-        X = X,
-        M = M,
-        doseRRmod = doseRRmod,
-        entry = entry,
-        exit = exit,
-        data = data,
-        deg = deg,
-        ERC = ERC,
-        Kmat = Kmat,
-        loglim = loglim,
-        transform = transform,
-        ...
-      )
+      if (ERC) {
+        fit$hessian <- numDeriv::hessian(
+          func = loglik.prophaz.erc,
+          x = fit$par,
+          D = dosevars,
+          status = status,
+          X = X,
+          M = M,
+          doseRRmod = doseRRmod,
+          entry = entry,
+          exit = exit,
+          data = data,
+          deg = deg,
+          loglim = loglim,
+          transform = transform,
+          Xc_ord = Xc_ord,
+          Kmat_diag_ord = Kmat_diag_ord,
+          ...
+        )
+      } else {
+        fit$hessian <- numDeriv::hessian(
+          func = loglik.prophaz,
+          x = fit$par,
+          D = "rcdose_ameras",
+          status = status,
+          X = X,
+          M = M,
+          doseRRmod = doseRRmod,
+          entry = entry,
+          exit = exit,
+          data = data,
+          deg = deg,
+          loglim = loglim,
+          transform = transform,
+          ...
+        )
+      }
     }
 
     if (doseRRmod != "LINEXP") {
@@ -1354,8 +1492,18 @@ ameras.rc <- function(
           rcond(fit$hessian) > .Machine$double.eps &
           all(eigen(fit$hessian)$values > 0)
       ) {
-        jac <- transform.jacobian(fit$par, ...)
-        vcov <- jac %*% solve(fit$hessian) %*% t(jac)
+        cholH <- tryCatch(chol(fit$hessian), error = function(e) NULL)
+        if (!is.null(cholH)) {
+          jac <- transform.jacobian(fit$par, ...)
+          tmpsolve <- backsolve(cholH, t(jac), transpose = TRUE)
+          vcov <- crossprod(tmpsolve)
+          #vcov <- jac %*% MASS::ginv(fit$hessian) %*% t(jac)
+        } else {
+          warning(
+            "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
+          )
+          vcov <- matrix(NA, ncol = length(parnames), nrow = length(parnames))
+        }
       } else {
         warning(
           "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
@@ -1372,7 +1520,7 @@ ameras.rc <- function(
         rcond(fit$hessian) > .Machine$double.eps &
         all(eigen(fit$hessian)$values > 0)
     ) {
-      vcov <- solve(fit$hessian)
+      vcov <- chol2inv(chol(fit$hessian)) #MASS::ginv(fit$hessian)
     } else {
       warning(
         "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"

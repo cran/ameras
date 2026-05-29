@@ -788,26 +788,6 @@ ameras.fma <- function(
     )
   }
 
-  #Extra exclusion check for asymmetric variance matrix
-  for (iii in 1:length(FMAfits)) {
-    fit.FMAi <- FMAfits[[iii]]
-    if (fit.FMAi$include) {
-      if (!is.null(transform) & !is.null(transform.jacobian)) {
-        if (is.function(transform) & is.function(transform.jacobian)) {
-          jac <- transform.jacobian(fit.FMAi$coef, ...)
-          samplevar <- jac %*% solve(fit.FMAi$hess) %*% t(jac)
-        } else {
-          stop("transform and transform.jacobian should be functions")
-        }
-      } else {
-        samplevar <- solve(fit.FMAi$hess)
-      }
-      if (!isSymmetric(samplevar)) {
-        FMAfits[[iii]]$include <- FALSE
-      }
-    }
-  }
-
   #allfits <- FMAfits
   included.realizations <- which(sapply(FMAfits, function(x) x$include))
 
@@ -838,14 +818,17 @@ ameras.fma <- function(
         if (!is.null(transform) & !is.null(transform.jacobian)) {
           if (is.function(transform) & is.function(transform.jacobian)) {
             samplemeans <- transform(fit.FMAi$coef, ...)
+            cholH <- chol(fit.FMAi$hess)
             jac <- transform.jacobian(fit.FMAi$coef, ...)
-            samplevar <- jac %*% solve(fit.FMAi$hess) %*% t(jac)
+            tmpsolve <- backsolve(cholH, t(jac), transpose = TRUE)
+            samplevar <- crossprod(tmpsolve)
+            #samplevar <- jac %*% solve(fit.FMAi$hess) %*% t(jac)
           } else {
             stop("transform and transform.jacobian should be functions")
           }
         } else {
           samplemeans <- fit.FMAi$coef
-          samplevar <- solve(fit.FMAi$hess)
+          samplevar <- chol2inv(chol(fit.FMAi$hess)) #solve(fit.FMAi$hess)
         }
 
         return(rmvnorm(n = fit.FMAi$M, mean = samplemeans, sigma = samplevar))
@@ -863,16 +846,23 @@ ameras.fma <- function(
 
     coefs <- colMeans(FMAsamples)
     sd <- apply(FMAsamples, 2, sd)
+    vcov <- var(FMAsamples)
 
     FMAsamples <- as.data.frame(FMAsamples)
-    names(coefs) <- names(sd) <- names(FMAsamples) <- parnames
+    rownames(vcov) <- colnames(vcov) <- names(coefs) <- names(sd) <- names(
+      FMAsamples
+    ) <- parnames
 
     included.samples <- nrow(FMAsamples)
+    wgts <- sapply(FMAfits, function(x) x$wgt)
   } else {
-    coefs <- sd <- NA * FMAfits[[1]]$coef
-    names(coefs) <- names(sd) <- parnames
+    FMAsamples <- NULL
+    coefs <- sd <- NA * inpar
+    vcov <- matrix(NA, ncol = length(inpar), nrow = length(inpar))
+    rownames(vcov) <- colnames(vcov) <- names(coefs) <- names(sd) <- parnames
 
     included.samples <- 0
+    wgts <- NULL
   }
 
   t1 <- proc.time()
@@ -897,8 +887,10 @@ ameras.fma <- function(
   out <- list(
     coefficients = coefs,
     sd = sd,
+    vcov = vcov,
     included.realizations = included.realizations,
     included.samples = included.samples,
+    weights = wgts,
     samples = FMAsamples,
     #includedfits=FMAfits,
     #allfits=allfits,
@@ -1308,7 +1300,6 @@ ameras.bma <- function(
             doseRRmod = doseRRmod,
             data = data,
             deg = deg,
-            ERC = FALSE,
             transform = transform,
             ...
           )
@@ -1328,7 +1319,6 @@ ameras.bma <- function(
               doseRRmod = doseRRmod,
               data = data,
               deg = deg,
-              ERC = FALSE,
               transform = transform,
               ...
             )
@@ -1346,7 +1336,6 @@ ameras.bma <- function(
             doseRRmod = doseRRmod,
             data = data,
             deg = deg,
-            ERC = FALSE,
             transform = transform,
             method = optim.method,
             control = control,
@@ -1365,7 +1354,6 @@ ameras.bma <- function(
               doseRRmod = doseRRmod,
               data = data,
               deg = deg,
-              ERC = FALSE,
               transform = transform,
               method = "BFGS",
               control = control,
@@ -1384,7 +1372,6 @@ ameras.bma <- function(
             doseRRmod = doseRRmod,
             data = data,
             deg = deg,
-            ERC = FALSE,
             transform = transform,
             ...
           )
@@ -2012,6 +1999,9 @@ ameras.bma <- function(
   sd <- apply(nimblesamples.stacked, 2, sd)
   names(sd) <- parnames
 
+  vcov <- var(nimblesamples.stacked)
+  rownames(vcov) <- colnames(vcov) <- parnames
+
   mcmcsum <- MCMCsummary(nimblesamples)
   Rhat <- mcmcsum[-nrow(mcmcsum), c("Rhat", "n.eff")]
   if (nchains > 1) {
@@ -2025,16 +2015,6 @@ ameras.bma <- function(
       "WARNING: MCMC convergence cannot be assessed using a single chains"
     )
   }
-
-  # if(CI=="percentile"){
-  #   CIlower=apply(nimblesamples.stacked, 2, function(x) quantile(x, .025))
-  #   CIupper=apply(nimblesamples.stacked, 2, function(x) quantile(x, .975))
-  #   CIresult <- data.frame(lower=CIlower, upper=CIupper)
-  # } else if(CI=="hpd"){
-  #   CIresult <- as.data.frame(HPDinterval(as.mcmc(nimblesamples.stacked)))
-  # }
-
-  # rownames(CIresult) <- parnames
 
   t1 <- proc.time()
   timedif <- t1 - t0
@@ -2055,6 +2035,7 @@ ameras.bma <- function(
   out <- list(
     coefficients = coef,
     sd = sd,
+    vcov = vcov,
     #CI=CIresult,
     Rhat = Rhat,
     samples = nimblesamples,

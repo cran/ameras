@@ -1,3 +1,62 @@
+# ameras 0.4.0
+
+## Bug fixes
+
+* Fixed a bug causing the `inpar` check in `ameras()` to generate an
+  error when it should not.
+* Fixed an issue where FMA generated an error instead of returning
+  `NULL` for generated samples when all individual fits were excluded.
+* Fixed an issue where setting `keep.data=FALSE` and passing data to
+  `confint()` failed an internal check when effect modifiers were
+  present.
+* Fixed an issue where profile likelihood confidence intervals for the
+  ERC method of the proportional hazards family were computed using
+  the non-ERC likelihood, silently ignoring the measurement error
+  correction.
+* Removed the `isSymmetric` check for FMA variance matrices, which
+  caused platform-dependent differences in included realizations due
+  to numerical differences between Cholesky and `solve`-based
+  computations. The Cholesky-based variance computation now used
+  guarantees exact symmetry without an explicit check.
+
+## Improvements
+
+* Reduced memory usage and improved computation speed for large
+  datasets: removed the use of N x N matrices for ERC for the
+  proportional hazards family, and precomputed centered dose matrices
+  for ERC are now stored and reused across likelihood evaluations
+  rather than recomputed at each call.
+* `confint()` no longer recomputes confidence intervals by default if
+  they have already been computed. Use `force=TRUE` to recompute with
+  different settings. `confint()` now also prints the computed
+  confidence intervals when called with `print=TRUE` (default).
+* FMA and BMA output now includes a variance-covariance matrix
+  `vcov`, computed from the model-averaged posterior samples.
+* It is now possible to use a `dosevars` variable defined locally (e.g.,
+  within a simulation script) through `all_of(dosevars)` in the 
+  formula passed to `ameras()`.
+
+## New methods and accessors
+
+* `residuals()`: computes Pearson, deviance, and response residuals
+  for all supported families, and Schoenfeld residuals for
+  `family="prophaz"`, supporting both raw and scaled versions
+  following Grambsch and Therneau (1994).
+* `plot()`: diagnostic plots including residuals versus fitted values
+  and normal Q-Q plots. For `family="prophaz"`, Schoenfeld residual
+  plots are produced to assess the proportional hazards assumption.
+* `vcov()`: extracts the variance-covariance matrix of parameter
+  estimates for one or more estimation methods.
+* `included_realizations()`: returns the indices of realizations
+  included in FMA and BMA model averaging.
+* `Rhat()`: returns the Gelman-Rubin convergence diagnostics and
+  effective sample sizes for BMA results.
+* `summary_table()`: extracts the summary table from a
+  `summary.amerasfit` object as a data frame, for programmatic
+  access to parameter estimates, standard errors, and confidence
+  intervals.
+
+
 # ameras 0.3.0
 
 ## Breaking changes

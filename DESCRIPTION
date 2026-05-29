@@ -1,6 +1,6 @@
 Package: ameras
 Title: Analyze Multiple Exposure Realizations in Association Studies
-Version: 0.3.0
+Version: 0.4.0
 Authors@R: c(person(given = "Sander",
                       family = "Roberti",
                       role =  c("aut", "cre"),
@@ -32,7 +32,7 @@ Description: Analyze association studies with multiple realizations of a noisy o
     Gaussian, binomial, multinomial, Poisson, proportional hazards, and conditional logistic.
 License: MIT + file LICENSE
 Imports: Rcpp (>= 1.0.10), RcppEigen, coda, numDeriv, mvtnorm, methods,
-        MCMCvis, tidyselect, lifecycle
+        MCMCvis, tidyselect, lifecycle, graphics, grDevices
 LinkingTo: Rcpp, RcppEigen
 NeedsCompilation: yes
 VignetteBuilder: knitr
@@ -47,6 +47,6 @@ Maintainer: Sander Roberti <sander.roberti@nih.gov>
 URL: https://ameras.sanderroberti.com,
         https://github.com/sanderroberti/ameras
 BugReports: https://github.com/sanderroberti/ameras/issues
-Packaged: 2026-05-06 18:51:59 UTC; robertis2
+Packaged: 2026-05-29 15:56:50 UTC; robertis2
 Repository: CRAN
-Date/Publication: 2026-05-07 09:40:08 UTC
+Date/Publication: 2026-05-29 23:30:02 UTC
