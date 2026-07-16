@@ -13,6 +13,8 @@ for (combo in binomial_combos) {
   label <- sprintf("%s_%s_deg%d", combo$family, combo$doseRRmod, combo$deg)
 
   test_that(paste("snapshot:", label), {
+    skip_on_cran()
+
     fit <- fit_combination(
       family = combo$family,
       Y = combo$Y,
@@ -38,9 +40,7 @@ for (combo in binomial_combos) {
 # Test all non-RC methods with snapshot for a basic model
 for (method in setdiff(all_methods, "RC")) {
   test_that(paste("binomial snapshot:", method), {
-    if (method %in% c("ERC", "MCML", "BMA")) {
-      skip_on_cran()
-    }
+    skip_on_cran()
 
     fit <- fit_combination(
       family = "binomial",
@@ -67,8 +67,8 @@ for (method in setdiff(all_methods, "RC")) {
 }
 
 
-# Basic no-error check for RC and all combinations of doseRRmod, deg, and lengths of X and M
-
+# Basic no-error check for RC and all combinations of doseRRmod, deg, and
+# lengths of X and M.
 for (combo in binomial_combos) {
   for (cov_combo in covariate_combinations) {
     X_label <- if (is.null(cov_combo$X)) {
@@ -91,6 +91,8 @@ for (combo in binomial_combos) {
     )
 
     test_that(label, {
+      skip_on_cran()
+
       expect_no_error({
         if (length(cov_combo$M) > 0) {
           fit_combination(
@@ -127,323 +129,3 @@ for (combo in binomial_combos) {
     })
   }
 }
-
-# Test RC with all 45 combinations of doseRRmod, deg and lengths of X and M
-#
-# test_that("ameras binomial ERR deg=1 methods=RC X=c(X1,X2) M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=1, methods="RC", X=c("X1","X2"), M=c("M1", "M2"), doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=4:6))
-# })
-#
-# test_that("ameras binomial ERR deg=2 methods=RC X=c(X1,X2) M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=2, methods="RC", X=c("X1","X2"), M=c("M1", "M2"), doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=4:9))
-# })
-#
-# test_that("ameras binomial ERR deg=1 methods=RC X=X1 M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=1, methods="RC", X=c("X1"), M=c("M1", "M2"), doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=3:5))
-# })
-#
-# test_that("ameras binomial ERR deg=2 methods=RC X=X1 M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=2, methods="RC", X=c("X1"), M=c("M1", "M2"), doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=3:8))
-# })
-#
-# test_that("ameras binomial ERR deg=1 methods=RC X=NULL M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=1, methods="RC", X=NULL, M=c("M1", "M2"), doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=2:4))
-# })
-#
-# test_that("ameras binomial ERR deg=2 methods=RC X=NULL M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=2, methods="RC", X=NULL, M=c("M1", "M2"), doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=2:7))
-# })
-#
-#
-#
-#
-#
-#
-# test_that("ameras binomial ERR deg=1 methods=RC X=c(X1,X2) M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=1, methods="RC", X=c("X1","X2"), M="M1", doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=4:5))
-# })
-#
-# test_that("ameras binomial ERR deg=2 methods=RC X=c(X1,X2) M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=2, methods="RC", X=c("X1","X2"), M="M1", doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=4:7))
-# })
-#
-# test_that("ameras binomial ERR deg=1 methods=RC X=X1 M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=1, methods="RC", X=c("X1"), M="M1", doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=3:4))
-# })
-#
-# test_that("ameras binomial ERR deg=2 methods=RC X=X1 M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=2, methods="RC", X=c("X1"), M="M1", doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=3:6))
-# })
-#
-# test_that("ameras binomial ERR deg=1 methods=RC X=NULL M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=1, methods="RC", X=NULL, M="M1", doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=2:3))
-# })
-#
-# test_that("ameras binomial ERR deg=2 methods=RC X=NULL M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=2, methods="RC", X=NULL, M="M1", doseRRmod="ERR", transform=transform1, transform.jacobian=transform1.jacobian, index.t=2:5))
-# })
-#
-#
-#
-#
-#
-#
-# test_that("ameras binomial ERR deg=1 methods=RC X=c(X1,X2) M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=1, methods="RC", X=c("X1","X2"), M=NULL, doseRRmod="ERR"))
-# })
-#
-# test_that("ameras binomial ERR deg=2 methods=RC X=c(X1,X2) M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=2, methods="RC", X=c("X1","X2"), M=NULL, doseRRmod="ERR"))
-# })
-#
-# test_that("ameras binomial ERR deg=1 methods=RC X=X1 M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=1, methods="RC", X=c("X1"), M=NULL, doseRRmod="ERR"))
-# })
-#
-# test_that("ameras binomial ERR deg=2 methods=RC X=X1 M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=2, methods="RC", X=c("X1"), M=NULL, doseRRmod="ERR"))
-# })
-#
-# test_that("ameras binomial ERR deg=1 methods=RC X=NULL M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial",  dosevars=dosevars, deg=1, methods="RC", X=NULL, M=NULL, doseRRmod="ERR"))
-# })
-#
-# test_that("ameras binomial ERR deg=2 methods=RC X=NULL M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=2, methods="RC", X=NULL, M=NULL, doseRRmod="ERR"))
-# })
-#
-#
-#
-#
-#
-# #------------------------
-#
-#
-# test_that("ameras binomial LINEXP   methods=RC X=c(X1,X2) M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars,   methods="RC", X=c("X1","X2"), M=c("M1", "M2"), doseRRmod="LINEXP", transform=transform1, transform.jacobian=transform1.jacobian, index.t=4:9))
-# })
-#
-# test_that("ameras binomial LINEXP   methods=RC X=X1 M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars,  methods="RC", X=c("X1"), M=c("M1", "M2"), doseRRmod="LINEXP", transform=transform1, transform.jacobian=transform1.jacobian, index.t=3:8))
-# })
-#
-#
-# test_that("ameras binomial LINEXP   methods=RC X=NULL M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars,  methods="RC", X=NULL, M=c("M1", "M2"), doseRRmod="LINEXP", transform=transform1, transform.jacobian=transform1.jacobian, index.t=2:7))
-# })
-#
-#
-#
-#
-#
-#
-# test_that("ameras binomial LINEXP   methods=RC X=c(X1,X2) M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars,   methods="RC", X=c("X1","X2"), M="M1", doseRRmod="LINEXP", transform=transform1, transform.jacobian=transform1.jacobian, index.t=4:7))
-# })
-#
-#
-# test_that("ameras binomial LINEXP   methods=RC X=X1 M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars,   methods="RC", X=c("X1"), M="M1", doseRRmod="LINEXP", transform=transform1, transform.jacobian=transform1.jacobian, index.t=3:6))
-# })
-#
-#
-# test_that("ameras binomial LINEXP   methods=RC X=NULL M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_warning(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars,  methods="RC", X=NULL, M="M1", doseRRmod="LINEXP", transform=transform1, transform.jacobian=transform1.jacobian, index.t=2:5))
-# })
-#
-#
-#
-#
-#
-#
-#
-# test_that("ameras binomial LINEXP   methods=RC X=c(X1,X2) M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars,   methods="RC", X=c("X1","X2"), M=NULL, doseRRmod="LINEXP"))
-# })
-#
-#
-# test_that("ameras binomial LINEXP   methods=RC X=X1 M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars,  methods="RC", X=c("X1"), M=NULL, doseRRmod="LINEXP"))
-# })
-#
-# test_that("ameras binomial LINEXP   methods=RC X=NULL M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars,   methods="RC", X=NULL, M=NULL, doseRRmod="LINEXP"))
-# })
-#
-#
-# # ------------------------
-#
-# test_that("ameras binomial  EXP deg=1 methods=RC X=c(X1,X2) M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=1,  methods="RC", X=c("X1","X2"), M=c("M1", "M2"), doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=2 methods=RC X=c(X1,X2) M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=2,  methods="RC", X=c("X1","X2"), M=c("M1", "M2"), doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=1 methods=RC X=X1 M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=1, methods="RC", X=c("X1"), M=c("M1", "M2"), doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=2 methods=RC X=X1 M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=2,  methods="RC", X=c("X1"), M=c("M1", "M2"), doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=1 methods=RC X=NULL M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=1,  methods="RC", X=NULL, M=c("M1", "M2"), doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=2 methods=RC X=NULL M=c(M1,M2)", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=2, methods="RC", X=NULL, M=c("M1", "M2"), doseRRmod="EXP"))
-# })
-#
-#
-#
-#
-#
-#
-# test_that("ameras binomial  EXP deg=1 methods=RC X=c(X1,X2) M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=1,  methods="RC", X=c("X1","X2"), M="M1", doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=2 methods=RC X=c(X1,X2) M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=2, methods="RC", X=c("X1","X2"), M="M1", doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=1 methods=RC X=X1 M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=1,methods="RC", X=c("X1"), M="M1", doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=2 methods=RC X=X1 M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=2,  methods="RC", X=c("X1"), M="M1", doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=1 methods=RC X=NULL M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=1,  methods="RC", X=NULL, M="M1", doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=2 methods=RC X=NULL M=M1", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=2,  methods="RC", X=NULL, M="M1", doseRRmod="EXP"))
-# })
-#
-#
-#
-#
-#
-#
-# test_that("ameras binomial  EXP deg=1 methods=RC X=c(X1,X2) M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=1,  methods="RC", X=c("X1","X2"), M=NULL, doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=2 methods=RC X=c(X1,X2) M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=2,  methods="RC", X=c("X1","X2"), M=NULL, doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=1 methods=RC X=X1 M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=1,  methods="RC", X=c("X1"), M=NULL, doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=2 methods=RC X=X1 M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=2,  methods="RC", X=c("X1"), M=NULL, doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=1 methods=RC X=NULL M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=1,  methods="RC", X=NULL, M=NULL, doseRRmod="EXP"))
-# })
-#
-# test_that("ameras binomial  EXP deg=2 methods=RC X=NULL M=NULL", {
-#   data("data", package="ameras")
-#   dosevars <- paste0("V",1:10)
-#   expect_no_error(ameras(data=data, family="binomial", Y="Y.binomial", dosevars=dosevars, deg=2,  methods="RC", X=NULL, M=NULL, doseRRmod="EXP"))
-# })
-#
-#
-#

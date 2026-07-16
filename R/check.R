@@ -11,6 +11,19 @@ check_df <- function(x, nm = "data") {
   NULL
 }
 
+check_reserved_names <- function(data, reserved = "rcdose_ameras") {
+  used <- intersect(reserved, colnames(data))
+  if (length(used)) {
+    stop(paste0(
+      "ERROR: data contains reserved ameras column name(s): ",
+      getCharVecStr(used),
+      ". Please rename these columns before fitting."
+    ))
+  }
+
+  NULL
+}
+
 check_family <- function(x, nm = "family") {
   valid <- c(
     "gaussian",
@@ -65,6 +78,26 @@ check_D <- function(vars, data, methods) {
   NULL
 }
 
+check_included_realizations_BMA <- function(x, dosevars) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+
+  nm <- "included.realizations.BMA"
+  check_integer(x, nm, minlen = 0, maxlen = 0, min = 1, max = length(dosevars))
+  if (length(x) < 2) {
+    stop(
+      "ERROR: BMA requires at least two included exposure realizations. ",
+      "With a single exposure realization, use RC."
+    )
+  }
+  if (any(duplicated(x))) {
+    stop(paste0("ERROR: ", nm, " contains duplicated values"))
+  }
+
+  NULL
+}
+
 check_M <- function(vars, data) {
   nm <- "M"
   check_vars(data, vars, nm, minlen = 0, maxlen = 0)
@@ -89,6 +122,98 @@ check_X <- function(vars, data) {
   NULL
 }
 
+
+warn_if_poorly_conditioned_X <- function(
+  X_matrix,
+  family,
+  mean_sd_threshold = 100,
+  sd_ratio_threshold = 1e4,
+  kappa_threshold = 1e6
+) {
+  if (is.null(X_matrix) || !length(X_matrix)) {
+    return(invisible(NULL))
+  }
+
+  X_matrix <- as.matrix(X_matrix)
+  if (!nrow(X_matrix) || !ncol(X_matrix) || !all(is.finite(X_matrix))) {
+    return(invisible(NULL))
+  }
+
+  sds <- apply(X_matrix, 2, sd)
+  means <- colMeans(X_matrix)
+  nonzero_sd <- is.finite(sds) & sds > 0
+  details <- character()
+
+  if (any(!nonzero_sd)) {
+    details <- c(
+      details,
+      paste0(
+        "near-zero variation in ",
+        paste(colnames(X_matrix)[!nonzero_sd], collapse = ", ")
+      )
+    )
+  }
+
+  if (any(nonzero_sd)) {
+    mean_sd_ratio <- abs(means[nonzero_sd]) / sds[nonzero_sd]
+    large_mean <- mean_sd_ratio > mean_sd_threshold
+    if (any(large_mean)) {
+      details <- c(
+        details,
+        paste0(
+          "large mean relative to standard deviation in ",
+          paste(names(mean_sd_ratio)[large_mean], collapse = ", ")
+        )
+      )
+    }
+
+    sd_ratio <- max(sds[nonzero_sd]) / min(sds[nonzero_sd])
+    if (is.finite(sd_ratio) && sd_ratio > sd_ratio_threshold) {
+      details <- c(
+        details,
+        paste0(
+          "standard deviations differ by a factor of ",
+          signif(sd_ratio, 4)
+        )
+      )
+    }
+  }
+
+  design <- if (
+    family %in% c("gaussian", "binomial", "poisson", "multinomial")
+  ) {
+    cbind(`(Intercept)` = 1, X_matrix)
+  } else {
+    X_matrix
+  }
+  if (ncol(design) > 1 && nrow(design) >= ncol(design)) {
+    design_kappa <- tryCatch(kappa(design), error = function(e) NA_real_)
+    if (is.finite(design_kappa) && design_kappa > kappa_threshold) {
+      details <- c(
+        details,
+        paste0("design condition number is ", signif(design_kappa, 4))
+      )
+    }
+  }
+
+  if (length(details)) {
+    warning(
+      paste0(
+        "WARNING: right-hand-side covariates appear poorly scaled or ",
+        "ill-conditioned (",
+        paste(unique(details), collapse = "; "),
+        "). This can make optimizer convergence unreliable. Consider ",
+        "centering/scaling continuous covariates, such as calendar year, ",
+        "before fitting."
+      ),
+      call. = FALSE
+    )
+  }
+
+  invisible(NULL)
+}
+
+
 check_offset <- function(v, data) {
   if (!length(v)) {
     return(NULL)
@@ -105,16 +230,92 @@ check_setnr <- function(v, data) {
   check_vars(data, v, nm, minlen = 1, maxlen = 1)
   check_num_vec(data[, v, drop = TRUE], nm, nonneg = 1, integer = 1)
 
-  nset_noncontributing <- sum(table(data[, v, drop = TRUE]) == 1)
-  if (nset_noncontributing > 0) {
-    warning(paste0(
-      "Data contains ",
-      nset_noncontributing,
-      " matched sets of size 1 that do not contribute to model estimation"
+  NULL
+}
+
+filter_clogit_sets <- function(data, status, setnr) {
+  y <- data[, status, drop = TRUE]
+  sets <- data[, setnr, drop = TRUE]
+  set_sizes <- table(sets)
+  cases_per_set <- tapply(y, sets, sum)
+
+  multi_case_sets <- names(cases_per_set)[cases_per_set > 1]
+  if (length(multi_case_sets)) {
+    stop(paste0(
+      "Conditional logistic regression currently requires exactly one case ",
+      "per informative matched set; ",
+      length(multi_case_sets),
+      " matched set(s) contain more than one case."
     ))
   }
 
-  NULL
+  size_one_sets <- names(set_sizes)[set_sizes == 1]
+  no_case_sets <- names(cases_per_set)[cases_per_set == 0]
+  drop_sets <- union(size_one_sets, no_case_sets)
+
+  if (length(drop_sets)) {
+    warning(paste0(
+      "Excluding ",
+      length(size_one_sets),
+      " matched set(s) of size 1 and ",
+      length(setdiff(no_case_sets, size_one_sets)),
+      " additional matched set(s) with no cases from conditional logistic ",
+      "regression."
+    ))
+    data <- data[!(sets %in% drop_sets), , drop = FALSE]
+  }
+
+  if (!nrow(data)) {
+    stop(
+      "No informative matched sets remain after excluding matched sets of ",
+      "size 1 or with no cases."
+    )
+  }
+
+  data
+}
+
+filter_prophaz_zero_followup <- function(data, entry, exit, status = NULL) {
+  if (is.null(entry) || !length(entry)) {
+    return(data)
+  }
+
+  entry_vec <- data[, entry, drop = TRUE]
+  exit_vec <- data[, exit, drop = TRUE]
+  zero_followup <- entry_vec == exit_vec
+  zero_followup[is.na(zero_followup)] <- FALSE
+
+  if (any(zero_followup)) {
+    n_excluded <- sum(zero_followup)
+    n_events <- if (!is.null(status) && length(status)) {
+      sum(data[zero_followup, status, drop = TRUE] == 1, na.rm = TRUE)
+    } else {
+      NA_integer_
+    }
+
+    event_note <- if (is.na(n_events)) {
+      ""
+    } else {
+      paste0(" Of these, ", n_events, " had status = 1.")
+    }
+
+    warning(paste0(
+      "Excluding ",
+      n_excluded,
+      " row(s) with entry == exit since they have zero follow-up time.",
+      event_note
+    ))
+    data <- data[!zero_followup, , drop = FALSE]
+  }
+
+  if (!nrow(data)) {
+    stop(
+      "No rows remain after excluding rows with entry == exit from ",
+      "proportional hazards regression."
+    )
+  }
+
+  data
 }
 
 check_entry_exit <- function(entry, exit, data) {
@@ -127,7 +328,7 @@ check_entry_exit <- function(entry, exit, data) {
   if (length(entry)) {
     vec1 <- data[, entry, drop = TRUE]
     check_num_vec(vec1, nm1)
-    tmp <- entry > exit
+    tmp <- vec1 > vec2
     tmp[is.na(tmp)] <- FALSE
     if (any(tmp)) stop(paste0("ERROR: ", nm1, " > ", nm2, " for some values"))
   }
@@ -169,6 +370,18 @@ check_inpar <- function(x, family, M, X, deg, multinom_levels = 0) {
     stop("ERROR")
   }
   check_num_vec(x, nm, binary = 0, nonneg = 0, integer = 0, len = len)
+  x
+}
+
+check_future_chunk_size_FMA <- function(x) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+  nm <- "future.chunk.size.FMA"
+  if (!is.numeric(x) || length(x) != 1 || is.na(x) || x <= 0) {
+    stop(paste0("ERROR: ", nm, " must be a positive number or NULL"))
+  }
+
   x
 }
 
@@ -285,7 +498,7 @@ check_char_vec <- function(x, nm, valid = NULL, def = NULL, len = 0) {
 
 
 required_vars <- function(m) {
-  vars <- c(m$dosevars, m$X, m$M_names)
+  vars <- c(m$dosevars, model_X_vars(m), modifier_source_vars(m))
 
   if (m$family %in% c("gaussian", "binomial", "poisson", "multinomial")) {
     vars <- c(vars, m$Y)
@@ -306,6 +519,130 @@ required_vars <- function(m) {
 
   vars[!is.null(vars)]
 }
+
+
+model_X_vars <- function(m) {
+  if (!is.null(m$X_names)) {
+    return(m$X_names)
+  }
+  if (is.character(m$X)) {
+    return(m$X)
+  }
+  character()
+}
+
+
+resolve_na_action <- function(na.action, env = parent.frame()) {
+  if (is.null(na.action)) {
+    na.action <- getOption("na.action")
+  }
+  if (is.null(na.action)) {
+    na.action <- "na.omit"
+  }
+
+  if (is.character(na.action)) {
+    if (length(na.action) != 1) {
+      stop("ERROR: na.action must be a function or a single function name")
+    }
+    if (!exists(na.action, envir = env, mode = "function", inherits = TRUE)) {
+      stop("ERROR: na.action function not found: ", na.action)
+    }
+    na.action <- get(na.action, envir = env, mode = "function", inherits = TRUE)
+  }
+
+  if (!is.function(na.action)) {
+    stop("ERROR: na.action must be a function or a single function name")
+  }
+
+  na.action
+}
+
+
+model_na_vars <- function(
+  family,
+  dosevars,
+  Y = NULL,
+  status = NULL,
+  M = NULL,
+  X = NULL,
+  offset = NULL,
+  entry = NULL,
+  exit = NULL,
+  setnr = NULL
+) {
+  vars <- c(dosevars, M, X)
+
+  if (family %in% c("gaussian", "binomial", "poisson", "multinomial")) {
+    vars <- c(vars, Y)
+  }
+
+  if (family == "poisson") {
+    vars <- c(vars, offset)
+  }
+
+  if (family == "prophaz") {
+    vars <- c(vars, status, exit, entry)
+  }
+
+  if (family == "clogit") {
+    vars <- c(vars, status, setnr)
+  }
+
+  vars <- vars[!is.na(vars)]
+  vars <- vars[nzchar(vars)]
+  unique(vars)
+}
+
+
+model_na_vars_from_model <- function(m) {
+  model_na_vars(
+    family = m$family,
+    dosevars = m$dosevars,
+    Y = m$Y,
+    status = m$status,
+    M = modifier_source_vars(m),
+    X = model_X_vars(m),
+    offset = m$offset,
+    entry = m$entry,
+    exit = m$exit,
+    setnr = m$setnr
+  )
+}
+
+
+apply_na_action_to_data <- function(data, vars, na.action) {
+  vars <- unique(vars)
+  vars <- vars[vars %in% colnames(data)]
+
+  if (!length(vars)) {
+    return(list(data = data, na.action = NULL))
+  }
+
+  na_frame <- data[, vars, drop = FALSE]
+  row_id <- ".ameras_row_id"
+  while (row_id %in% colnames(na_frame)) {
+    row_id <- paste0(".", row_id)
+  }
+  na_frame[[row_id]] <- seq_len(nrow(data))
+
+  acted <- na.action(na_frame)
+  if (!is.data.frame(acted) || !row_id %in% colnames(acted)) {
+    stop(
+      "ERROR: na.action must return a data frame with rows preserved or removed"
+    )
+  }
+
+  keep <- acted[[row_id]]
+  if (!length(keep)) {
+    stop("ERROR: no complete observations remain after applying na.action")
+  }
+
+  list(
+    data = data[keep, , drop = FALSE],
+    na.action = attr(acted, "na.action")
+  )
+}
+
 
 check_integer <- function(
   x,

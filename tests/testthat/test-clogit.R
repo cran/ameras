@@ -4,11 +4,118 @@ data("data", package = "ameras")
 
 # Clogit, basic model, all methods
 
+test_that("clogit supports non-default strata column names", {
+  dat <- data
+  dat$Set <- dat$setnr
+
+  # The formula parser stores the variable named inside strata(). This guards
+  # against later clogit setup accidentally assuming the column is named setnr.
+  fit_setnr <- ameras(
+    Y.clogit ~ dose(V1:V10, model = EXP, deg = 1) + strata(setnr),
+    data = dat,
+    family = "clogit"
+  )
+  fit_Set <- ameras(
+    Y.clogit ~ dose(V1:V10, model = EXP, deg = 1) + strata(Set),
+    data = dat,
+    family = "clogit"
+  )
+
+  expect_equal(coef(fit_Set), coef(fit_setnr), tolerance = 1e-8)
+  expect_equal(fit_Set$model$setnr, "Set")
+})
+
+test_that("clogit filters uninformative matched sets before fitting", {
+  base <- do.call(rbind, lapply(seq_len(8), function(s) {
+    data.frame(
+      Y = c(1, 0, 0),
+      setnr = s,
+      D1 = (3 * s + 0:2) / 10,
+      D2 = (3 * s + 1:3) / 10
+    )
+  }))
+  dat <- rbind(
+    base,
+    data.frame(Y = c(0, 0), setnr = 9, D1 = c(3, 3.1), D2 = c(3.2, 3.3)),
+    data.frame(Y = 1, setnr = 10, D1 = 3.4, D2 = 3.5)
+  )
+
+  # The last two sets are uninformative: one has no case and one has size 1.
+  # They should be removed once, before any clogit method-specific fit runs.
+  expect_warning(
+    fit <- suppressMessages(ameras(
+      Y ~ dose(D1:D2, model = EXP, deg = 1) + strata(setnr),
+      data = dat,
+      family = "clogit",
+      methods = "RC",
+      print = FALSE
+    )),
+    "Excluding 1 matched set"
+  )
+
+  expect_equal(fit$num.rows, nrow(base))
+  expect_false(any(fit$model$data$setnr %in% c(9, 10)))
+  expect_true(all(is.finite(fit$RC$coefficients)))
+
+  summ <- summary(fit)
+  expect_equal(summ$row_info$supplied, nrow(dat))
+  expect_equal(summ$row_info$omitted.na, 0L)
+  expect_equal(summ$row_info$clogit.uninformative.rows, nrow(dat) - nrow(base))
+  expect_equal(summ$row_info$used, nrow(base))
+
+  out <- capture.output(print(summ))
+  expect_true(any(grepl(
+    paste0(
+      "Excluded as uninformative matched-set rows: ",
+      nrow(dat) - nrow(base)
+    ),
+    out,
+    fixed = TRUE
+  )))
+  expect_true(any(grepl("sets of size 1 or with no cases", out, fixed = TRUE)))
+  expect_false(any(grepl("Omitted by na.action: 0", out, fixed = TRUE)))
+  expect_true(any(grepl(
+    paste0("Used for fitting: ", nrow(base)),
+    out,
+    fixed = TRUE
+  )))
+})
+
+test_that("clogit rejects unsupported matched set case patterns", {
+  multi_case <- data.frame(
+    Y = c(1, 1, 0),
+    setnr = c(1, 1, 1),
+    D1 = c(0.1, 0.2, 0.3),
+    D2 = c(0.2, 0.3, 0.4)
+  )
+  expect_error(
+    ameras(
+      Y ~ dose(D1:D2, model = EXP, deg = 1) + strata(setnr),
+      data = multi_case,
+      family = "clogit"
+    ),
+    "more than one case"
+  )
+
+  no_informative <- data.frame(
+    Y = c(0, 0, 1),
+    setnr = c(1, 1, 2),
+    D1 = c(0.1, 0.2, 0.3),
+    D2 = c(0.2, 0.3, 0.4)
+  )
+  expect_error(
+    suppressWarnings(ameras(
+      Y ~ dose(D1:D2, model = EXP, deg = 1) + strata(setnr),
+      data = no_informative,
+      family = "clogit"
+    )),
+    "No informative matched sets remain"
+  )
+})
+
 for (method in all_methods) {
   test_that(paste("clogit snapshot:", method), {
-    if (method %in% c("ERC", "MCML", "BMA")) {
-      skip_on_cran()
-    }
+    skip_on_cran()
 
     fit <- fit_combination(
       family = "clogit",

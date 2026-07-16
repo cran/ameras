@@ -85,14 +85,15 @@
   \item{force}{
       Logical. If \code{TRUE}, confidence intervals are recomputed even if
       they have already been computed for this object. Defaults to
-      \code{FALSE}, in which case a warning is issued and the object is
+      \code{FALSE}, in which case a message is printed and the object is
       returned unchanged if confidence intervals are already present.
   }
   \item{print}{
       Logical. If \code{TRUE} (default), confidence intervals are printed to the console.
   }
   \item{digits}{
-      Number of significant digits to be printed. Default is `max(3, getOption("digits") - 3)`
+      Number of significant digits to be printed. Default is
+      \code{max(3, getOption("digits") - 3)}.
   }
   \item{\dots}{
     Additional arguments, currently unused.
@@ -101,8 +102,10 @@
 
 \value{
   The original \code{amerasfit} object with a \code{CI} element added to
-  each fitted method result. For RC, ERC, and MCML the \code{CI} element
-  is a data frame with columns:
+  each fitted method result. The method-specific \code{timing} and
+  \code{runtime} elements are also updated so that printed runtime summaries
+  include confidence interval computation time. For RC, ERC, and MCML the
+  \code{CI} element is a data frame with columns:
   \describe{
     \item{\code{lower}}{Lower confidence bound.}
     \item{\code{upper}}{Upper confidence bound.}
@@ -156,13 +159,21 @@
   re-evaluating the likelihood repeatedly and can be time-consuming.
   The \code{parm} argument can be used to restrict computation to dose
   parameters only (the default) when intervals for the other parameters are
-  not of interest.
+  not of interest. If a profile likelihood bound cannot be reliably
+  bracketed or solved, the corresponding bound is returned as \code{NA}
+  with a warning that reports the last attempted parameter value and its
+  p-value. For transformed fits, the warning also reports the corresponding
+  internal optimizer-scale value. For models with formula effect modifiers,
+  subgroup-specific profile likelihood intervals can be obtained by fitting
+  subgroup-specific dose coefficients with \code{modifier=~0+M} or
+  \code{modifier=~M-1}.
 
   When the model was fitted with \code{keep.data=FALSE} and
   \code{type="proflik"} is used for \code{confint}, the original data must be
-  supplied via the \code{data} argument. Wald intervals do not require the
-  data and can always be computed from the stored Hessian and parameter
-  estimates alone.
+  supplied via the \code{data} argument. The missing-value policy used during
+  fitting is reapplied to the supplied data before profile likelihood
+  evaluation. Wald intervals do not require the data and can always be
+  computed from the stored Hessian and parameter estimates alone.
 }
 
 \seealso{

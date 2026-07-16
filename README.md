@@ -108,16 +108,18 @@ summary(fit)
 #> ameras(formula = Y.binomial ~ dose(V1:V10), data = data, family = "binomial", 
 #>     methods = c("RC", "ERC", "MCML", "FMA", "BMA"))
 #> 
-#> Total run time: 54.1 seconds
+#> Rows: 3000
 #> 
-#> Runtime in seconds by method:
+#> Total CPU runtime: 51.2 seconds
 #> 
-#>  Method Runtime
-#>      RC     0.0
-#>     ERC     6.7
-#>    MCML     0.1
-#>     FMA     0.2
-#>     BMA    47.1
+#> CPU runtime in seconds by method:
+#> 
+#>  Method    Fit  CI  Total
+#>      RC  0.028 0.0  0.028
+#>     ERC  7.951 0.0  7.951
+#>    MCML  0.110 0.0  0.110
+#>     FMA  0.311 0.0  0.311
+#>     BMA 42.780 0.0 42.780
 #> 
 #> Summary of coefficients by method:
 #> 
@@ -142,43 +144,50 @@ Finally, we add confidence intervals to the `fit` object:
 fit <- confint(fit, type=c("wald.orig","percentile"))
 #> RC confidence intervals:
 #> 
-#>       lower upper
-#> dose 0.5324 1.071
+#>               lower   upper
+#> (Intercept) -1.0293 -0.7401
+#> dose         0.5324  1.0715
 #> 
 #> ERC confidence intervals:
 #> 
-#>       lower upper
-#> dose 0.5411 1.102
+#>               lower   upper
+#> (Intercept) -1.0314 -0.7384
+#> dose         0.5411  1.1018
 #> 
 #> MCML confidence intervals:
 #> 
-#>       lower upper
-#> dose 0.5236 1.058
+#>               lower   upper
+#> (Intercept) -1.0193 -0.7323
+#> dose         0.5236  1.0584
 #> 
 #> FMA confidence intervals:
 #> 
-#>       lower upper
-#> dose 0.5241 1.059
+#>               lower   upper
+#> (Intercept) -1.0199 -0.7327
+#> dose         0.5241  1.0594
 #> 
 #> BMA confidence intervals:
 #> 
-#>      lower upper
-#> dose 0.552  1.08
+#>              lower  upper
+#> (Intercept) -1.019 -0.735
+#> dose         0.552  1.080
 summary(fit)
 #> Call:
 #> ameras(formula = Y.binomial ~ dose(V1:V10), data = data, family = "binomial", 
 #>     methods = c("RC", "ERC", "MCML", "FMA", "BMA"))
 #> 
-#> Total run time: 54.1 seconds
+#> Rows: 3000
 #> 
-#> Runtime in seconds by method:
+#> Total CPU runtime: 51.2 seconds
 #> 
-#>  Method Runtime
-#>      RC     0.0
-#>     ERC     6.7
-#>    MCML     0.1
-#>     FMA     0.2
-#>     BMA    47.1
+#> CPU runtime in seconds by method:
+#> 
+#>  Method    Fit    CI  Total
+#>      RC  0.028 0.001  0.029
+#>     ERC  7.951 0.000  7.951
+#>    MCML  0.110 0.000  0.110
+#>     FMA  0.311 0.004  0.315
+#>     BMA 42.780 0.001 42.781
 #> 
 #> Summary of coefficients by method:
 #> 
@@ -205,4 +214,5 @@ plot(fit, methods="RC")
 <img src="man/figures/README-unnamed-chunk-5-1.png" alt="" width="100%" /><img src="man/figures/README-unnamed-chunk-5-2.png" alt="" width="100%" />
 
 See the vignettes for additional details on model fitting, confidence
-intervals, and the use of transformations.
+intervals, transformations, standard analyses with one dose realization,
+manual FMA through multiple RC fits, and parallel FMA.

@@ -16,7 +16,8 @@
     \code{\link{ameras}}.
   }
   \item{digits}{
-    Number of significant digits to be printed. Default is `max(3, getOption("digits") - 3)`
+    Number of significant digits to be printed. Default is
+    \code{max(3, getOption("digits") - 3)}.
   }
   \item{\dots}{
     Additional arguments, currently unused.
@@ -24,8 +25,12 @@
 }
 
 \value{
-  Prints the `ameras` call, number of rows and dose realizations in the data, runtime,
-  and model coefficients.
+  Prints the \code{ameras} call, number of rows and dose realizations in the data,
+  CPU runtime, and model coefficients. Row counts reflect omissions due to
+  missing values and model-specific exclusions, when applicable. For objects
+  with structured
+  timing information, fitting time, confidence interval
+  computation time, and total time are shown separately.
 }
 
 

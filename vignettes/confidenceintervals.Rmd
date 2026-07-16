@@ -21,7 +21,7 @@ library(ameras)
 
 # Introduction
 To compute confidence intervals, first fit the model using `ameras`, then use the `confint` method to attach confidence intervals.
-Several types of confidence intervals are supported, which should be supplied to the `type` argument of `confint`, see below. When `confint` is called with `methods` containing at least one of `RC`, `ERC`, and `MCML` and at least one of `FMA` and `BMA`, `type` should be a vector of length 2 with one method for `RC`, `ERC` and `MCML` and one for `FMA` and `BMA`.
+Several types of confidence intervals are supported, which should be supplied to the `type` argument of `confint`, see below. When the fitted object contains at least one of `RC`, `ERC`, and `MCML` and at least one of `FMA` and `BMA`, `type` should be a vector of length 2 with one interval type for `RC`, `ERC` and `MCML` and one for `FMA` and `BMA`.
 
 # Regression calibration, extended regression calibration, and Monte Carlo maximum likelihood
 
@@ -44,7 +44,7 @@ $$
 where $\ell$ is the log (partial) likelihood. Next, profile confidence intervals $(\theta_p^l, \theta_p^h)$ are obtained for parameter $\theta_p$ at significance level $\alpha$ by solving 
 $-2 \{PL_p(\theta_p^*) - \ell(\hat{\mathbf{\theta}})\}=\chi^2_{1,1-\alpha}$ using the bisection method, with $\hat{\mathbf{\theta}}$ the maximum likelihood estimate. Note that profile likelihoods are more computationally intensive to obtain. For this reason, `confint` offers the option to only determine them for the exposure-related parameters, which is the default setting. To obtain profile likelihood intervals for all parameters, use `parm = "all"`.
 
-To illustrate, we determine the three types of confidence intervals for a regression calibration analysis using the example data, using a linear excess relative risk model with the default exponential transformation (see [Parameter transformations](transformations.html)).
+To illustrate, we determine the three types of confidence intervals for a regression calibration analysis using the example data, using a linear excess relative risk model with the default exponential transformation (see [Parameter transformations](transformations.html)). For subgroup-specific intervals in models with effect modifiers, fit subgroup-specific dose coefficients with `modifier = ~ 0 + M` or `modifier = ~ M - 1`; see [Effect modification](effectmodification.html).
 
 ```{r fits1, eval = identical(Sys.getenv("NOT_CRAN"), "true")}
 data(data, package="ameras")

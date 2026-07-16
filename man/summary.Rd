@@ -45,6 +45,15 @@
     \item{\code{call}}{
       The matched call from the original call to \code{\link{ameras}}.
     }
+    \item{\code{row_info}}{
+      A list describing row handling during model fitting, including the number
+      of rows supplied, omitted by \code{na.action}, and used for fitting.
+      For conditional logistic regression, this also includes the number of
+      rows excluded because they belong to uninformative matched sets. For
+      proportional hazards regression with entry times, this also includes the
+      number of rows excluded because they have zero follow-up time
+      (\code{entry == exit}).
+    }
     \item{\code{summary_table}}{
       A data frame with one row per parameter per method, containing
       columns:
@@ -61,18 +70,6 @@
           The upper confidence bound, if confidence intervals have been
           computed via \code{\link[=confint.amerasfit]{confint}}.
         }
-        \item{\code{pval.lower}}{
-          p-value associated with the lower bound of the profile likelihood 
-          CI, the assess validity of the obtained bound. Only included if
-          profile likelihood confidence intervals were computed via
-          \code{\link[=confint.amerasfit]{confint}}.
-        }
-        \item{\code{pval.upper}}{
-          p-value associated with the upper bound of the profile likelihood 
-          CI, the assess validity of the obtained bound. Only included if
-          profile likelihood confidence intervals were computed via
-          \code{\link[=confint.amerasfit]{confint}}.
-        }
         \item{\code{Rhat}}{
           The Gelman-Rubin convergence diagnostic, included only when
           BMA results are present. Values above 1.05 indicate potential convergence problems.
@@ -83,11 +80,15 @@
       }
     }
     \item{\code{runtime_table}}{
-      A data frame with columns \code{Method} and \code{Runtime},
-      reporting the computation time in seconds for each method.
+      A data frame reporting computation time in seconds for each method.
+      When structured timing information is available this has columns
+      \code{Method}, \code{Fit}, \code{CI}, and \code{Total}, with CPU time
+      reported for each timing component. For objects that only contain the
+      compatibility \code{runtime} field, this has columns \code{Method} and
+      \code{Runtime}.
     }
     \item{\code{total_runtime_seconds}}{
-      The total computation time in seconds across all methods.
+      The total CPU computation time in seconds across all methods.
     }
     \item{\code{CI.computed}}{
       Logical. \code{TRUE} if confidence intervals have been computed
@@ -103,12 +104,22 @@
   confidence intervals are only printed if they have been computed by
   \code{\link[=confint.amerasfit]{confint}}. When BMA results are present 
   in the fitted object, the summary table includes columns \code{Rhat} and 
-  \code{n.eff}, with \code{NA} values for all other methods.
+  \code{n.eff}, with \code{NA} values for all other methods. Profile
+  likelihood diagnostic columns such as \code{pval.lower} and
+  \code{pval.upper} remain available in the stored \code{CI} component
+  but are not printed in the summary table.
 
-  Printing the summary prints the original call to \code{ameras}, the runtime
-  (total and by method), and the table described above. This table can also
-  be accessed directly (i.e., to retrieve confidence intervals) using
-  \code{summary_table}.
+  Printing the summary prints the original call to \code{ameras}, row counts,
+  the CPU runtime (total and by method), and the table described above. Row
+  counts reflect omissions due to missing values and model-specific exclusions,
+  when applicable. For conditional logistic regression, model-specific
+  exclusions are rows in uninformative matched sets, i.e., matched sets of size
+  1 or with no cases. For proportional hazards regression with entry times,
+  model-specific exclusions are rows with zero follow-up time
+  (\code{entry == exit}). When confidence intervals have been computed, CI
+  runtime is included in the total runtime.
+  This table can also be accessed directly (i.e., to retrieve confidence
+  intervals) using \code{summary_table}.
 }
 
 \seealso{
@@ -130,7 +141,7 @@ fit <- ameras(Y.binomial~dose(V1:V10, model="ERR"), data = data, family = "binom
 summary(fit)
 
 ## Summary with confidence intervals
-fit <- confint(fit, method = "wald.orig")
+fit <- confint(fit, type = "wald.orig")
 summary(fit)
 
 ## Access the summary table directly
@@ -140,7 +151,7 @@ s <- summary_table(fit)
 \donttest{
 fit2 <- ameras(Y.binomial~dose(V1:V10, model="ERR"), data = data, family = "binomial",
               methods = c("RC", "ERC", "MCML"))
-fit2 <- confint(fit2, method = "wald.orig")
+fit2 <- confint(fit2, type = "wald.orig")
 summary(fit2)
 }
 }

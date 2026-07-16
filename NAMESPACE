@@ -13,9 +13,13 @@ importFrom(
   "qnorm",
   "rnorm",
   "runif",
+  "sd",
   "uniroot",
   "optimize",
+  ".getXlevels",
+  "model.frame",
   "model.matrix",
+  "na.pass",
   "terms",
   "as.formula",
   "confint",
@@ -50,8 +54,10 @@ export(
   transform1.jacobian,
   traceplot,
   ecdfplot,
+  dose_lrt,
   Rhat,
   included_realizations,
+  convergence,
   summary_table
 )
 S3method(coef, amerasfit)
@@ -60,7 +66,9 @@ S3method(print, summary.amerasfit)
 S3method(traceplot, amerasfit)
 S3method(print, amerasfit)
 S3method(confint, amerasfit)
+S3method(dose_lrt, amerasfit)
 S3method(included_realizations, amerasfit)
+S3method(convergence, amerasfit)
 S3method(Rhat, amerasfit)
 S3method(residuals, amerasfit)
 S3method(plot, amerasfit)

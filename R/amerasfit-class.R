@@ -32,38 +32,205 @@ vcov.amerasfit <- function(
   if (length(result) == 1) result[[1]] else result
 }
 
+
+convergence <- function(object, ...) {
+  UseMethod("convergence")
+}
+
+
+convergence.amerasfit <- function(
+  object,
+  methods = c("RC", "ERC", "MCML"),
+  data = NULL,
+  recompute = FALSE,
+  warn = FALSE,
+  ...
+) {
+  methods <- match.arg(
+    methods,
+    c("RC", "ERC", "MCML", "FMA", "BMA"),
+    several.ok = TRUE
+  )
+
+  unsupported <- intersect(methods, c("FMA", "BMA"))
+  available <- intersect(
+    methods,
+    names(object)[names(object) %in% c("RC", "ERC", "MCML")]
+  )
+
+  if (!length(available)) {
+    if (length(unsupported)) {
+      stop(
+        "Gradient convergence diagnostics are available for RC, ERC, and MCML ",
+        "fits only. FMA combines realization-specific fits and BMA uses MCMC ",
+        "diagnostics."
+      )
+    }
+    stop("None of the requested methods were run")
+  }
+
+  resolved_data <- NULL
+  rows <- lapply(available, function(method_name) {
+    method_fit <- object[[method_name]]
+    fit_diag <- if (isTRUE(recompute)) {
+      NULL
+    } else {
+      stored_gradient_diagnostics(method_fit)
+    }
+
+    if (is.null(fit_diag)) {
+      if (is.null(resolved_data)) {
+        resolved_data <<- resolve_data(object, data)
+      }
+      fit_diag <- compute_fit_gradient_diagnostics(
+        object = object,
+        method_name = method_name,
+        method_fit = method_fit,
+        data = resolved_data
+      )
+    }
+
+    if (isTRUE(warn)) {
+      warn_if_large_optimizer_gradient(fit_diag)
+    }
+
+    gradient_diagnostic_row(method_name, fit_diag)
+  })
+
+  do.call(rbind, rows)
+}
+
+
+row_info_from_amerasfit <- function(object) {
+  supplied <- object$num.rows.original %||% object$num.rows
+  used <- object$num.rows %||% NA_integer_
+  omitted_na <- if (!is.null(object$na.action)) {
+    length(object$na.action)
+  } else {
+    0L
+  }
+  additional_filtered <- supplied - omitted_na - used
+  if (!is.finite(additional_filtered)) {
+    additional_filtered <- NA_integer_
+  } else {
+    additional_filtered <- max(0L, additional_filtered)
+  }
+
+  family <- object$model$family %||% NA_character_
+  clogit_uninformative_rows <- NULL
+  if (isTRUE(family == "clogit")) {
+    clogit_uninformative_rows <- additional_filtered
+  }
+  prophaz_zero_followup_rows <- NULL
+  if (isTRUE(family == "prophaz") && !is.null(object$model$entry)) {
+    prophaz_zero_followup_rows <- additional_filtered
+  }
+
+  list(
+    supplied = supplied,
+    omitted.na = omitted_na,
+    clogit.uninformative.rows = clogit_uninformative_rows,
+    prophaz.zero.followup.rows = prophaz_zero_followup_rows,
+    used = used
+  )
+}
+
+
+print_row_info <- function(row_info, detailed = TRUE) {
+  omitted_na <- row_info$omitted.na %||% 0L
+  used_differs <- isTRUE(row_info$used != row_info$supplied)
+  has_exclusions <- omitted_na > 0 ||
+    isTRUE(row_info$clogit.uninformative.rows > 0) ||
+    isTRUE(row_info$prophaz.zero.followup.rows > 0) ||
+    used_differs
+
+  if (isTRUE(detailed)) {
+    if (!has_exclusions) {
+      cat(paste0("\nRows: ", row_info$supplied, "\n"))
+      return(invisible(row_info))
+    }
+
+    cat("\nRows:\n")
+    cat(paste0("  Supplied: ", row_info$supplied, "\n"))
+    if (omitted_na > 0) {
+      cat(paste0("  Omitted by na.action: ", omitted_na, "\n"))
+    }
+    if (isTRUE(row_info$clogit.uninformative.rows > 0)) {
+      cat(paste0(
+        "  Excluded as uninformative matched-set rows: ",
+        row_info$clogit.uninformative.rows,
+        " (sets of size 1 or with no cases)\n"
+      ))
+    }
+    if (isTRUE(row_info$prophaz.zero.followup.rows > 0)) {
+      cat(paste0(
+        "  Excluded as zero-follow-up proportional hazards rows: ",
+        row_info$prophaz.zero.followup.rows,
+        " (entry == exit)\n"
+      ))
+    }
+    if (used_differs) {
+      cat(paste0("  Used for fitting: ", row_info$used, "\n"))
+    }
+  } else {
+    cat(paste0("\nNumber of rows: ", row_info$used))
+    details <- character()
+    if (omitted_na > 0) {
+      details <- c(
+        details,
+        paste0(omitted_na, " omitted due to missingness")
+      )
+    }
+    if (isTRUE(row_info$clogit.uninformative.rows > 0)) {
+      details <- c(
+        details,
+        paste0(
+          row_info$clogit.uninformative.rows,
+          " excluded as uninformative matched-set rows"
+        )
+      )
+    }
+    if (isTRUE(row_info$prophaz.zero.followup.rows > 0)) {
+      details <- c(
+        details,
+        paste0(
+          row_info$prophaz.zero.followup.rows,
+          " excluded as zero-follow-up proportional hazards rows"
+        )
+      )
+    }
+    if (length(details)) {
+      cat(paste0(" (", paste(details, collapse = ", "), ")"))
+    }
+    cat("\n")
+  }
+
+  invisible(row_info)
+}
+
+
 print.amerasfit <- function(x, digits = max(3, getOption("digits") - 3), ...) {
   object0 <- x[intersect(names(x), c("RC", "ERC", "MCML", "FMA", "BMA"))]
 
   coefs <- coef.amerasfit(x, ...)
 
-  runtime_table <- do.call(
-    "rbind",
-    lapply(1:length(object0), function(i) {
-      y <- object0[[i]]
-      method <- names(object0)[i]
-
-      runtime <- as.numeric(strsplit(y$runtime, " seconds")[[1]])
-
-      res <- data.frame(Method = method, Runtime = runtime)
-      rownames(res) <- NULL
-      res
-    })
-  )
-
-  total_runtime_seconds <- sum(sapply(object0, function(x) {
-    as.numeric(strsplit(x$runtime, " seconds")[[1]])
-  }))
+  runtime_table <- runtime_table_from_methods(object0)
+  total_runtime <- total_runtime_seconds(runtime_table)
 
   cat("Call:\n")
   print(x$call)
 
-  cat(paste0("\nNumber of rows: ", x$num.rows, "\n"))
+  print_row_info(row_info_from_amerasfit(x), detailed = FALSE)
   cat(paste0("Number of dose realizations: ", x$num.realizations, "\n"))
 
-  cat(paste0("\nTotal runtime: ", total_runtime_seconds, " seconds\n\n"))
+  if ("Total" %in% names(runtime_table)) {
+    cat(paste0("\nTotal CPU runtime: ", format_runtime(total_runtime), "\n\n"))
+    cat("CPU runtime in seconds by method:\n\n")
+  } else {
+    cat(paste0("\nTotal runtime: ", format_runtime(total_runtime), "\n\n"))
+    cat("Runtime in seconds by method:\n\n")
+  }
 
-  cat("Runtime in seconds by method:\n\n")
   print(format(runtime_table, digits = digits, nsmall = 1), row.names = FALSE)
 
   cat("\nEstimated model parameters:\n\n")
@@ -104,11 +271,7 @@ coef.amerasfit <- function(object, ...) {
   res
 }
 
-print_confint <- function(
-  object,
-  parm = NULL,
-  digits = max(3, getOption("digits") - 3)
-) {
+print_confint <- function(object, digits = max(3, getOption("digits") - 3)) {
   methods_present <- intersect(
     names(object),
     c("RC", "ERC", "MCML", "FMA", "BMA")
@@ -116,33 +279,14 @@ print_confint <- function(
 
   for (m in methods_present) {
     if (is.null(object[[m]]$CI)) {
-      next
+      next()
     }
 
     cat(m, "confidence intervals:\n\n")
-
-    CI <- object[[m]]$CI
-
-    # Filter rows based on parm
-    if (!is.null(parm)) {
-      if (identical(parm, "dose")) {
-        # Match dose-related parameters
-        keep <- startsWith(rownames(CI), "dose") |
-          grepl(")_dose", rownames(CI))
-        CI <- CI[keep, , drop = FALSE]
-      } else if (!identical(parm, "all")) {
-        # Match specific parameter names
-        keep <- rownames(CI) %in% parm
-        CI <- CI[keep, , drop = FALSE]
-      }
-    }
-
-    if (nrow(CI) == 0) {
-      cat("No parameters matched parm.\n\n")
-      next
-    }
-
-    print(format(CI, digits = digits), row.names = TRUE)
+    print(
+      format(object[[m]]$CI[, c("lower", "upper")], digits = digits),
+      row.names = TRUE
+    )
     cat("\n")
   }
 
@@ -187,17 +331,6 @@ summary.amerasfit <- function(object, ...) {
             CI.upper = CI.upper
           )
         )
-        # Add p-value columns for profile likelihood intervals. If not used, these will be removed after
-        res <- cbind(res, data.frame(pval.lower = NA, pval.upper = NA))
-
-        if ("pval.lower" %in% names(CI) && "pval.upper" %in% names(CI)) {
-          pval.lower <- pval.upper <- coef * NA
-          pval.lower[match(rownames(CI), names(coef))] <- CI$pval.lower
-          pval.upper[match(rownames(CI), names(coef))] <- CI$pval.upper
-          res$pval.lower <- pval.lower
-          res$pval.upper <- pval.upper
-          #res <- cbind(res, data.frame(pval.lower = pval.lower, pval.upper = pval.upper))
-        }
       }
 
       if (bma) {
@@ -212,40 +345,15 @@ summary.amerasfit <- function(object, ...) {
     })
   )
 
-  # Remove p-value columns if not used
-  if (object$CI.computed) {
-    if (
-      all(is.na(summary_table$pval.lower)) &
-        all(is.na(summary_table$pval.upper))
-    ) {
-      summary_table <- summary_table[,
-        -which(names(summary_table) %in% c("pval.lower", "pval.upper"))
-      ]
-    }
-  }
-  runtime_table <- do.call(
-    "rbind",
-    lapply(1:length(object0), function(i) {
-      y <- object0[[i]]
-      method <- names(object0)[i]
-
-      runtime <- as.numeric(strsplit(y$runtime, " seconds")[[1]])
-
-      res <- data.frame(Method = method, Runtime = runtime)
-      rownames(res) <- NULL
-      res
-    })
-  )
-
-  total_runtime_seconds <- sum(sapply(object0, function(x) {
-    as.numeric(strsplit(x$runtime, " seconds")[[1]])
-  }))
+  runtime_table <- runtime_table_from_methods(object0)
+  total_runtime <- total_runtime_seconds(runtime_table)
 
   ans <- list(
     call = object$call,
+    row_info = row_info_from_amerasfit(object),
     summary_table = summary_table,
     runtime_table = runtime_table,
-    total_runtime_seconds = total_runtime_seconds,
+    total_runtime_seconds = total_runtime,
     CI.computed = object$CI.computed
   )
 
@@ -261,9 +369,25 @@ print.summary.amerasfit <- function(
 ) {
   cat("Call:\n")
   print(x$call)
-  cat(paste0("\nTotal run time: ", x$total_runtime_seconds, " seconds\n\n"))
 
-  cat("Runtime in seconds by method:\n\n")
+  print_row_info(x$row_info, detailed = TRUE)
+
+  if ("Total" %in% names(x$runtime_table)) {
+    cat(paste0(
+      "\nTotal CPU runtime: ",
+      format_runtime(x$total_runtime_seconds),
+      "\n\n"
+    ))
+    cat("CPU runtime in seconds by method:\n\n")
+  } else {
+    cat(paste0(
+      "\nTotal runtime: ",
+      format_runtime(x$total_runtime_seconds),
+      "\n\n"
+    ))
+    cat("Runtime in seconds by method:\n\n")
+  }
+
   print(format(x$runtime_table, digits = digits, nsmall = 1), row.names = FALSE)
 
   cat("\nSummary of coefficients by method:\n\n")
@@ -354,7 +478,7 @@ confint.amerasfit <- function(
       "Confidence intervals have already been computed for this object. ",
       "Returning the object unchanged. Use force=TRUE to recompute."
     )
-    print_confint(object, parm = parm, digits = digits)
+    print_confint(object, digits = digits)
     return(invisible(object))
   }
 
@@ -371,6 +495,7 @@ confint.amerasfit <- function(
   res <- NULL
   for (it in 1:length(fitobj)) {
     method <- names(fitobj)[it]
+    ci_timer <- start_runtime_timer()
 
     if (method %in% c("FMA", "BMA")) {
       type.i <- match.arg(
@@ -390,7 +515,7 @@ confint.amerasfit <- function(
         if (is.list(samples)) {
           samples <- do.call("rbind", samples)
         }
-        samples <- samples[, pars]
+        samples <- samples[, pars, drop = FALSE]
       } else {
         samples <- fitobj[[it]]$samples
       }
@@ -461,11 +586,16 @@ confint.amerasfit <- function(
         rm(resolved_data)
       }
     }
+
+    object[[method]] <- set_ci_timing(
+      object[[method]],
+      stop_runtime_timer(ci_timer)
+    )
   }
 
   object$CI.computed <- TRUE
   if (print) {
-    print_confint(object, parm = parm, digits = digits)
+    print_confint(object, digits = digits)
   }
   invisible(object)
 }
@@ -478,54 +608,17 @@ summary_table.amerasfit <- function(object, ...) {
 }
 
 
-residuals.amerasfit <- function(
+compute_residuals <- function(
   object,
-  method = "RC",
-  type = NULL,
-  data = NULL,
-  dose.col = NULL,
-  scaled.schoenfeld = TRUE,
-  ...
+  method,
+  type,
+  resolved_data,
+  dose.col,
+  scaled.schoenfeld
 ) {
-  if (is.null(type)) {
-    if (object$model$family == "prophaz") {
-      type <- "schoenfeld"
-    } else {
-      type <- "pearson"
-    }
-  }
-  type <- match.arg(type, c("pearson", "response", "deviance", "schoenfeld"))
-
-  if (object$model$family == "prophaz") {
-    if (type != "schoenfeld") {
-      stop("Only schoenfeld residuals are supported for family 'prophaz'")
-    }
-  } else {
-    # Families other than prophaz
-    if (type == "schoenfeld") {
-      stop(paste0(
-        "schoenfeld residuals not supported for family='",
-        object$model$family,
-        "'"
-      ))
-    }
-  }
-  method <- match.arg(method, choices = c("RC", "ERC", "MCML", "FMA", "BMA"))
-
-  if (is.null(object[[method]])) {
-    stop("Method '", method, "' not present in fitted object")
-  }
-
-  resolved_data <- resolve_data(object, data = data)
-
-  if (is.null(dose.col)) {
-    dose.col <- select_dose_col(object, method, resolved_data)
-  } else {
-    if (!dose.col %in% colnames(resolved_data)) {
-      stop("dose.col '", dose.col, "' not found in data")
-    }
-  }
-
+  # The public residuals() method resolves and validates data before calling
+  # this helper. plot() can reuse the same resolved data without triggering a
+  # second reserved-column check on rcdose_ameras.
   m <- object$model
 
   mus <- compute_fitted(
@@ -582,6 +675,8 @@ residuals.amerasfit <- function(
     # we return an N x Z matrix of residuals rather than a vector
     Ymat <- diag(nlevels(resolved_data[, m$Y]))[
       as.integer(resolved_data[, m$Y]),
+      ,
+      drop = FALSE
     ]
     colnames(Ymat) <- levels(resolved_data[, m$Y])
 
@@ -675,6 +770,65 @@ residuals.amerasfit <- function(
   } else {
     stop("Residuals not implemented for family='", m$family, "'")
   }
+}
+
+
+residuals.amerasfit <- function(
+  object,
+  method = "RC",
+  type = NULL,
+  data = NULL,
+  dose.col = NULL,
+  scaled.schoenfeld = TRUE,
+  ...
+) {
+  if (is.null(type)) {
+    if (object$model$family == "prophaz") {
+      type <- "schoenfeld"
+    } else {
+      type <- "pearson"
+    }
+  }
+  type <- match.arg(type, c("pearson", "response", "deviance", "schoenfeld"))
+
+  if (object$model$family == "prophaz") {
+    if (type != "schoenfeld") {
+      stop("Only schoenfeld residuals are supported for family 'prophaz'")
+    }
+  } else {
+    # Families other than prophaz
+    if (type == "schoenfeld") {
+      stop(paste0(
+        "schoenfeld residuals not supported for family='",
+        object$model$family,
+        "'"
+      ))
+    }
+  }
+  method <- match.arg(method, choices = c("RC", "ERC", "MCML", "FMA", "BMA"))
+
+  if (is.null(object[[method]])) {
+    stop("Method '", method, "' not present in fitted object")
+  }
+
+  resolved_data <- resolve_data(object, data = data)
+
+  if (is.null(dose.col)) {
+    dose.col <- select_dose_col(object, method, resolved_data)
+  } else {
+    if (!dose.col %in% colnames(resolved_data)) {
+      stop("dose.col '", dose.col, "' not found in data")
+    }
+  }
+
+  compute_residuals(
+    object = object,
+    method = method,
+    type = type,
+    resolved_data = resolved_data,
+    dose.col = dose.col,
+    scaled.schoenfeld = scaled.schoenfeld
+  )
 }
 
 
@@ -774,11 +928,11 @@ plot.amerasfit <- function(
       data = resolved_data,
       dose.col = dose.col
     )
-    resids <- residuals.amerasfit(
-      x,
+    resids <- compute_residuals(
+      object = x,
       method = method,
       type = type,
-      data = resolved_data,
+      resolved_data = resolved_data,
       dose.col = dose.col,
       scaled.schoenfeld = TRUE
     )

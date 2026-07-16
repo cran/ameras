@@ -27,7 +27,9 @@ All functionality of the package is included in the function `ameras`. This vign
 
 ## Model specification
 
-Models are specified through formulas of the form `Y~dose(dose_expression, model="ERR", deg=1, modifier=M1+M2)+X1+X2`. Here `dose_expression` specifies the dose realization columns and is parsed by `eval_select` from the `tidyselect` package. Useful examples are `D1:D1000` if the doses are in a sequence of columns with sequential names such as `D1`-`D1000`, and `all_of(dosevars)` where `dosevars` is a vector with the names of all dose columns. Further, `model` specifies, for non-Gaussian families, whether to use the exponential dose-response model (`model="EXP"`), the linear-exponential model (`model="LINEXP"`) or the linear ERR model (`model="ERR"`). Next, `deg` is used to specify whether a quadratic dose term should (`deg=2`) or should not (`deg=1`) be estimated for the exponential or linear ERR dose-response model. The `modifier` term is optional and used to specify binary effect modification variables. Finally, `X1` and `X2` above represent optional additional covariates, which can include factor variables and interactions such as `X1*X2`. Note that interactions in the modifier term are not allowed, e.g. `M1*M2`. When `deg`, `modifier`, and `model` are not supplied, the defaults are `deg=1`, no effect modifiers, and `model="ERR"`.
+Models are specified through formulas of the form `Y~dose(dose_expression, model="ERR", deg=1, modifier=~M1+M2)+X1+X2`. Here `dose_expression` specifies the dose realization columns and is parsed by `eval_select` from the `tidyselect` package. Useful examples are `D1:D1000` if the doses are in a sequence of columns with sequential names such as `D1`-`D1000`, and `all_of(dosevars)` where `dosevars` is a vector with the names of all dose columns. Further, `model` specifies, for non-Gaussian families, whether to use the exponential dose-response model (`model="EXP"`), the linear-exponential model (`model="LINEXP"`) or the linear ERR model (`model="ERR"`). Next, `deg` is used to specify whether a quadratic dose term should (`deg=2`) or should not (`deg=1`) be estimated for the exponential or linear ERR dose-response model. The `modifier` term is optional and used to specify effect modification variables through a formula. Use `modifier=~M` for reference-plus-contrast coding, and `modifier=~0+M` or `modifier=~M-1` for subgroup-specific dose coefficients. Formula modifiers may be binary numeric/logical variables or factors; factor modifiers use the existing factor level order, with the first level as the reference. Interactions, transformed modifier terms, continuous numeric modifiers, character modifiers, and no-intercept coding with multiple modifier variables are not currently supported. For ERR and linear-exponential models, subgroup-specific modifier coding can be more numerically robust because default bounds are applied directly to each subgroup dose-effect parameter. See [Effect modification](effectmodification.html) for more detail. When `deg`, `modifier`, and `model` are not supplied, the defaults are `deg=1`, no effect modifiers, and `model="ERR"`.
+
+Additional right-hand-side covariates are expanded using `model.matrix()`, so standard formula features such as factor contrasts, interactions, `I()` terms, and basis functions can be used. For example, formulas can include terms such as `X1*X2`, `I(age^2)`, `splines::ns(age, df = 3)`, or `splines::bs(age, df = 4)`. These terms must preserve one value per row of the input data; terms that drop rows, such as `stats::na.omit(X)`, are not supported. When `keep.data = FALSE`, later calls that use supplied data apply the same expanded covariate columns as the original fit.
 
 
 ## Example data
@@ -121,7 +123,7 @@ coef(fit.ameras.logreg.lin)
 
 # Poisson regression
 
-For Poisson regression, an offset can be optionally used by including an `offset` term in the formula, e.g., `Y~dose(V1:V10)~X1+offset(PYR)`.
+For Poisson regression, an offset can be optionally used by including an `offset` term in the formula, e.g., `Y~dose(V1:V10)+X1+offset(PYR)`.
 Here, we show models without using an offset, first including a quadratic exposure term:
 
 ```{r modelfit.poisson, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")}
@@ -159,7 +161,7 @@ coef(fit.ameras.poisson.lin)
 
 
 # Proportional hazards regression
-Proportional hazards regression uses syntax similar to the `survival` package, with models specified using formulas with `Surv(exit, status)` or `Surv(entry, exit, status)` on the left hand side. Note that BMA fits a piecewise constant baseline hazard `h0` as the proportional hazards model is not directly supported. By default, the observed time interval is divided into 10 intervals using quantiles of the observed event times among cases. This number of such intervals can be specified through the `prophaz.numints.BMA` argument. The BMA output contains the `prophaz.numints.BMA+1` cutpoints defining the intervals in addition to `h0`.
+Proportional hazards regression uses syntax similar to the `survival` package, with models specified using formulas with `Surv(exit, status)` or `Surv(entry, exit, status)` on the left-hand side. Note that BMA fits a piecewise constant baseline hazard `h0` as the proportional hazards model is not directly supported. By default, the observed time interval is divided into 10 intervals using quantiles of the observed event times among cases. The number of such intervals can be specified through the `prophaz.numints.BMA` argument. The BMA output contains the `prophaz.numints.BMA+1` cutpoints defining the intervals in addition to `h0`.
 
 
 Again, we first fit models including a quadratic exposure term by setting `deg=2`.
@@ -272,7 +274,7 @@ Without the quadratic term (`deg=1`):
 
 ```{r modelfit.clogit.lin, cache=TRUE, eval = identical(Sys.getenv("NOT_CRAN"), "true")}
 set.seed(4401)
-fit.ameras.clogit.lin <- ameras(Y.clogit~dose(V1:V10, deg=2, model="EXP")+X1+X2+
+fit.ameras.clogit.lin <- ameras(Y.clogit~dose(V1:V10, deg=1, model="EXP")+X1+X2+
                                   strata(setnr), data=data, family="clogit", 
                                 methods=c("RC", "ERC", "MCML", "FMA", "BMA"), 
                                 niter.BMA = 5000, nburnin.BMA = 1000)
@@ -284,4 +286,3 @@ summary(fit.ameras.clogit.lin)
 ```{r, fig.fullwidth=TRUE, fig.show="hold", out.width='100%', fig.width=6, fig.height=8, eval = identical(Sys.getenv("NOT_CRAN"), "true")} 
 coef(fit.ameras.clogit.lin)
 ```
-

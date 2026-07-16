@@ -105,7 +105,8 @@
 \value{
   For families \code{"gaussian"}, \code{"binomial"},
   \code{"poisson"}, and \code{"clogit"}, a numeric vector of 
-  length \eqn{N} containing the residuals.
+  length \eqn{N} containing the residuals, where \eqn{N} is the number
+  of rows used for fitting after any \code{na.action} handling.
 
   For \code{family="multinomial"}, a numeric matrix of dimension
   \eqn{N \times Z} where \eqn{Z} is the number of outcome
@@ -124,6 +125,12 @@
 \details{
   Fitted values are computed using the dose column specified by
   \code{dose.col}.
+
+  If the model was fitted with \code{na.exclude}, residuals are returned for
+  the fitted rows only; they are not padded with \code{NA} values back to the
+  originally supplied row count. For proportional hazards models,
+  Schoenfeld residuals are event-level quantities and are returned only for
+  event rows.
 
   For \code{family="clogit"}, fitted values \eqn{\mu_i} are the
   conditional probabilities of being a case within each matched set,

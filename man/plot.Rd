@@ -26,7 +26,8 @@
     Character vector specifying which estimation methods to produce
     plots for. One or more of \code{"RC"}, \code{"ERC"},
     \code{"MCML"}, \code{"FMA"}, and \code{"BMA"}. Defaults to all. 
-    Methods not present in \code{x} are silently skipped.
+    Methods not present in \code{x} are skipped; an error is raised if
+    none of the requested methods are present.
   }
   \item{which}{
     Character vector specifying which plots to produce. For non-\code{"prophaz"}
@@ -106,13 +107,16 @@
   Under proportional hazards, the residuals should fluctuate randomly around
   zero with no systematic trend over time. Systematic patterns or smooth
   trends may indicate time-varying covariate effects and violation of the
-  proportional hazards assumption. Note that the implementation here corresponds 
-  to using \code{transform = "identity"} in \code{\link[survival]{cox.zph}}, 
-  in contrast to the default setting for that function which applies a 
+  proportional hazards assumption. These plots correspond to using
+  \code{transform = "identity"} in \code{\link[survival]{cox.zph}}, 
+  in contrast to the default setting for that function, which applies a 
   Kaplan--Meier transformation of time.
 
   The data must either be stored on the object (\code{keep.data=TRUE} in 
   \code{ameras}, the default) or supplied via the \code{data} argument.
+  If the model was fitted with \code{na.exclude}, diagnostic plots use the
+  fitted rows only; residuals and fitted values are not padded back to the
+  originally supplied row count.
 
 }
 
@@ -162,4 +166,3 @@ fit4 <- ameras(Surv(time, status) ~ dose(all_of(dosevars), model = "ERR"),
 plot(fit4)
 }
 }
-

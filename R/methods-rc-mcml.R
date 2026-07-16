@@ -15,6 +15,7 @@ ameras.mcml <- function(
   status = NULL,
   setnr = setnr,
   doseRRmod = NULL,
+  modifier_info = NULL,
   loglim = 1e-30,
   optim.method = "Nelder-Mead",
   control = list(reltol = 1e-10),
@@ -37,47 +38,6 @@ ameras.mcml <- function(
     if (is.null(inpar)) {
       inpar <- rep(0, 2 + length(X) + length(M) * deg + deg)
     }
-
-    loglik.mcml <- function(params, ...) {
-      logliks <- loglik.gaussian(
-        params,
-        D = dosevars,
-        X = X,
-        Y = Y,
-        M = M,
-        data = data,
-        deg = deg,
-        ERC = FALSE,
-        loglim = loglim,
-        transform = transform,
-        ...
-      )
-      return(
-        -1 *
-          log(mean(exp(pmax(
-            pmin(-1 * logliks - max(-1 * logliks), 7e1),
-            -7e1
-          )))) -
-          max(-1 * logliks)
-      ) # with explim=7e1
-      #return(mean(logliks)) # mean of log likelihoods
-    }
-
-    parnames <- c(
-      "(Intercept)",
-      names(data[, X, drop = FALSE]),
-      c("dose", "dose_squared")[1:deg]
-    )
-    if (!is.null(M)) {
-      parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-      if (deg == 2) {
-        parnames <- c(
-          parnames,
-          paste0("dose_squared:", names(data[, M, drop = FALSE]))
-        )
-      }
-    }
-    parnames <- c(parnames, "sigma")
   } else if (family == "binomial") {
     if (is.null(Y)) {
       stop("Y is required for family=binomial")
@@ -85,66 +45,6 @@ ameras.mcml <- function(
 
     if (is.null(inpar)) {
       inpar <- rep(0, 1 + length(X) + length(M) * deg + deg)
-    }
-
-    loglik.mcml <- function(params, ...) {
-      logliks <- loglik.binomial(
-        params,
-        D = dosevars,
-        X = X,
-        Y = Y,
-        M = M,
-        doseRRmod = doseRRmod,
-        data = data,
-        deg = deg,
-        ERC = FALSE,
-        loglim = loglim,
-        transform = transform,
-        ...
-      )
-      #return(log(mean(exp(logliks-mean(logliks))))+mean(logliks)) # log of mean of likelihoods
-      return(
-        -1 *
-          log(mean(exp(pmax(
-            pmin(-1 * logliks - max(-1 * logliks), 7e1),
-            -7e1
-          )))) -
-          max(-1 * logliks)
-      ) # with explim=7e1
-      #return(mean(logliks)) # mean of log likelihoods
-    }
-
-    if (doseRRmod != "LINEXP") {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose", "dose_squared")[1:deg]
-      )
-      if (!is.null(M)) {
-        parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-        if (deg == 2) {
-          parnames <- c(
-            parnames,
-            paste0("dose_squared:", names(data[, M, drop = FALSE]))
-          )
-        }
-      }
-    } else {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose_linear", "dose_exponential")
-      )
-      if (!is.null(M)) {
-        parnames <- c(
-          parnames,
-          paste0("dose_linear:", names(data[, M, drop = FALSE]))
-        )
-        parnames <- c(
-          parnames,
-          paste0("dose_exponential:", names(data[, M, drop = FALSE]))
-        )
-      }
     }
   } else if (family == "poisson") {
     if (is.null(Y)) {
@@ -154,66 +54,6 @@ ameras.mcml <- function(
     if (is.null(inpar)) {
       inpar <- rep(0, 1 + length(X) + length(M) * deg + deg)
     }
-
-    loglik.mcml <- function(params, ...) {
-      logliks <- loglik.poisson(
-        params,
-        D = dosevars,
-        X = X,
-        Y = Y,
-        offset = offset,
-        M = M,
-        doseRRmod = doseRRmod,
-        data = data,
-        deg = deg,
-        loglim = loglim,
-        transform = transform,
-        ...
-      )
-      #return(log(mean(exp(logliks-mean(logliks))))+mean(logliks)) # log of mean of likelihoods
-      return(
-        -1 *
-          log(mean(exp(pmax(
-            pmin(-1 * logliks - max(-1 * logliks), 7e1),
-            -7e1
-          )))) -
-          max(-1 * logliks)
-      ) # with explim=7e1
-      #return(mean(logliks)) # mean of log likelihoods
-    }
-
-    if (doseRRmod != "LINEXP") {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose", "dose_squared")[1:deg]
-      )
-      if (!is.null(M)) {
-        parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-        if (deg == 2) {
-          parnames <- c(
-            parnames,
-            paste0("dose_squared:", names(data[, M, drop = FALSE]))
-          )
-        }
-      }
-    } else {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose_linear", "dose_exponential")
-      )
-      if (!is.null(M)) {
-        parnames <- c(
-          parnames,
-          paste0("dose_linear:", names(data[, M, drop = FALSE]))
-        )
-        parnames <- c(
-          parnames,
-          paste0("dose_exponential:", names(data[, M, drop = FALSE]))
-        )
-      }
-    }
   } else if (family == "clogit") {
     if (is.null(doseRRmod)) {
       stop("doseRRmod is required for family=clogit")
@@ -222,68 +62,8 @@ ameras.mcml <- function(
       stop("status is required for family=clogit")
     }
 
-    designmat <- t(model.matrix(~ as.factor(data[, setnr]) - 1))
-
     if (is.null(inpar)) {
       inpar <- rep(0, length(X) + length(M) * deg + deg)
-    }
-
-    loglik.mcml <- function(params, ...) {
-      logliks <- loglik.clogit(
-        params,
-        D = dosevars,
-        status = status,
-        X = X,
-        M = M,
-        doseRRmod = doseRRmod,
-        designmat = designmat,
-        data = data,
-        deg = deg,
-        ERC = FALSE,
-        loglim = loglim,
-        transform = transform,
-        ...
-      )
-      return(
-        -1 *
-          log(mean(exp(pmax(
-            pmin(-1 * logliks - max(-1 * logliks), 7e1),
-            -7e1
-          )))) -
-          max(-1 * logliks)
-      ) # with explim=7e1
-      #return(mean(logliks)) # mean of log likelihoods
-    }
-
-    if (doseRRmod != "LINEXP") {
-      parnames <- c(
-        names(data[, X, drop = FALSE]),
-        c("dose", "dose_squared")[1:deg]
-      )
-      if (!is.null(M)) {
-        parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-        if (deg == 2) {
-          parnames <- c(
-            parnames,
-            paste0("dose_squared:", names(data[, M, drop = FALSE]))
-          )
-        }
-      }
-    } else {
-      parnames <- c(
-        names(data[, X, drop = FALSE]),
-        c("dose_linear", "dose_exponential")
-      )
-      if (!is.null(M)) {
-        parnames <- c(
-          parnames,
-          paste0("dose_linear:", names(data[, M, drop = FALSE]))
-        )
-        parnames <- c(
-          parnames,
-          paste0("dose_exponential:", names(data[, M, drop = FALSE]))
-        )
-      }
     }
   } else if (family == "prophaz") {
     if (is.null(exit)) {
@@ -299,65 +79,6 @@ ameras.mcml <- function(
     if (is.null(inpar)) {
       inpar <- rep(0, length(X) + length(M) * deg + deg)
     }
-
-    loglik.mcml <- function(params, ...) {
-      logliks <- loglik.prophaz(
-        params,
-        D = dosevars,
-        status = status,
-        X = X,
-        M = M,
-        doseRRmod = doseRRmod,
-        entry = entry,
-        exit = exit,
-        data = data,
-        deg = deg,
-        ERC = FALSE,
-        loglim = loglim,
-        transform = transform,
-        ...
-      )
-      return(
-        -1 *
-          log(mean(exp(pmax(
-            pmin(-1 * logliks - max(-1 * logliks), 7e1),
-            -7e1
-          )))) -
-          max(-1 * logliks)
-      ) # with explim=7e1
-      #return(mean(logliks)) # mean of log likelihoods
-    }
-
-    if (doseRRmod != "LINEXP") {
-      parnames <- c(
-        names(data[, X, drop = FALSE]),
-        c("dose", "dose_squared")[1:deg]
-      )
-      if (!is.null(M)) {
-        parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-        if (deg == 2) {
-          parnames <- c(
-            parnames,
-            paste0("dose_squared:", names(data[, M, drop = FALSE]))
-          )
-        }
-      }
-    } else {
-      parnames <- c(
-        names(data[, X, drop = FALSE]),
-        c("dose_linear", "dose_exponential")
-      )
-      if (!is.null(M)) {
-        parnames <- c(
-          parnames,
-          paste0("dose_linear:", names(data[, M, drop = FALSE]))
-        )
-        parnames <- c(
-          parnames,
-          paste0("dose_exponential:", names(data[, M, drop = FALSE]))
-        )
-      }
-    }
   } else if (family == "multinomial") {
     if (is.null(Y)) {
       stop("Y is required for family=multinomial")
@@ -370,180 +91,66 @@ ameras.mcml <- function(
           (1 + length(X) + length(M) * deg + deg)
       )
     }
-
-    loglik.mcml <- function(params, ...) {
-      logliks <- loglik.multinomial(
-        params,
-        D = dosevars,
-        X = X,
-        Y = Y,
-        M = M,
-        doseRRmod = doseRRmod,
-        data = data,
-        deg = deg,
-        ERC = FALSE,
-        loglim = loglim,
-        transform = transform,
-        ...
-      )
-      #return(log(mean(exp(logliks-mean(logliks))))+mean(logliks)) # log of mean of likelihoods
-      return(
-        -1 *
-          log(mean(exp(pmax(
-            pmin(-1 * logliks - max(-1 * logliks), 7e1),
-            -7e1
-          )))) -
-          max(-1 * logliks)
-      ) # with explim=7e1
-      #return(mean(logliks)) # mean of log likelihoods
-    }
-
-    if (doseRRmod != "LINEXP") {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose", "dose_squared")[1:deg]
-      )
-      if (!is.null(M)) {
-        parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-        if (deg == 2) {
-          parnames <- c(
-            parnames,
-            paste0("dose_squared:", names(data[, M, drop = FALSE]))
-          )
-        }
-      }
-    } else {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose_linear", "dose_exponential")
-      )
-      if (!is.null(M)) {
-        parnames <- c(
-          parnames,
-          paste0("dose_linear:", names(data[, M, drop = FALSE]))
-        )
-        parnames <- c(
-          parnames,
-          paste0("dose_exponential:", names(data[, M, drop = FALSE]))
-        )
-      }
-    }
-
-    mylv <- levels(data[, Y])
-
-    mylv <- mylv[-length(mylv)]
-
-    parnames <- do.call(
-      "c",
-      lapply(mylv, function(lv) paste0("(", lv, ")_", parnames))
-    )
   }
-  t0 <- proc.time()
-  if (length(parnames) == 1) {
-    # Optimize 1-dimensional model: use optimize instead of optim
-    fit0 <- optimize(f = loglik.mcml, lower = -20, upper = 5, ...)
-    fit <- list(
-      par = fit0$minimum,
-      value = fit0$objective,
-      convergence = 0,
-      hessian = numDeriv::hessian(func = loglik.mcml, x = fit0$minimum, ...)
-    )
-  } else {
-    fit <- optim(
-      inpar,
-      loglik.mcml,
-      method = optim.method,
-      control = control,
-      ...
-    )
-    if (optim.method == "Nelder-Mead") {
-      count0 <- fit$counts
-      fit <- optim(
-        fit$par,
-        loglik.mcml,
-        method = "BFGS",
-        control = control,
-        ...
-      )
-      fit$counts <- replace(count0, is.na(count0), 0) +
-        replace(fit$counts, is.na(fit$counts), 0)
-    }
-    fit$hessian <- numDeriv::hessian(func = loglik.mcml, x = fit$par, ...)
-  }
-
-  if (!is.null(transform) & !is.null(transform.jacobian)) {
-    if (is.function(transform) & is.function(transform.jacobian)) {
-      if ("boundcheck" %in% names(formals(transform))) {
-        coefs <- transform(fit$par, boundcheck = TRUE, ...)
-      } else {
-        coefs <- transform(fit$par, ...)
-      }
-      if (
-        det(fit$hessian) != 0 &
-          rcond(fit$hessian) > .Machine$double.eps &
-          all(eigen(fit$hessian)$values > 0)
-      ) {
-        cholH <- tryCatch(chol(fit$hessian), error = function(e) NULL)
-        if (!is.null(cholH)) {
-          jac <- transform.jacobian(fit$par, ...)
-          tmpsolve <- backsolve(cholH, t(jac), transpose = TRUE)
-          vcov <- crossprod(tmpsolve)
-          #vcov <- jac %*% MASS::ginv(fit$hessian) %*% t(jac)
-        } else {
-          warning(
-            "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
-          )
-          vcov <- matrix(NA, ncol = length(parnames), nrow = length(parnames))
-        }
-      } else {
-        warning(
-          "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
-        )
-        vcov <- matrix(NA, ncol = length(parnames), nrow = length(parnames))
-      }
-    } else {
-      stop("transform and transform.jacobian should be functions")
-    }
-  } else {
-    coefs <- fit$par
-    if (
-      det(fit$hessian) != 0 &
-        rcond(fit$hessian) > .Machine$double.eps &
-        all(eigen(fit$hessian)$values > 0)
-    ) {
-      vcov <- chol2inv(chol(fit$hessian)) #MASS::ginv(fit$hessian)
-    } else {
-      warning(
-        "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
-      )
-      vcov <- matrix(NA, ncol = length(parnames), nrow = length(parnames))
-    }
-  }
-
-  names(coefs) <- parnames
-  rownames(vcov) <- colnames(vcov) <- parnames
-
-  t1 <- proc.time()
-  timedif <- t1 - t0
-  runtime <- paste(
-    round(as.numeric(as.difftime(timedif["elapsed"], units = "secs")), 1),
-    "seconds"
+  # Group-coded modifiers are reported on the subgroup scale, but the
+  # low-level likelihoods still use reference-plus-contrast parameters.
+  loglik_transform <- make_modifier_loglik_transform(
+    transform = transform,
+    modifier_info = modifier_info,
+    family = family,
+    X = X,
+    M = M,
+    deg = deg,
+    Y = Y,
+    data = data
   )
 
-  out <- list(
-    coefficients = coefs,
-    sd = sqrt(diag(vcov)),
-    vcov = vcov,
-    optim = list(
-      par = fit$par,
-      hessian = fit$hessian,
-      convergence = fit$convergence,
-      counts = fit$counts
-    ),
-    loglik = -1 * fit$value,
-    runtime = runtime
+  loglik.mcml <- make_mcml_loglik_fn(
+    family = family,
+    dosevars = dosevars,
+    data = data,
+    Y = Y,
+    M = M,
+    X = X,
+    offset = offset,
+    entry = entry,
+    exit = exit,
+    status = status,
+    setnr = setnr,
+    doseRRmod = doseRRmod,
+    deg = deg,
+    loglim = loglim,
+    transform = loglik_transform,
+    ...
+  )
+
+  parnames <- make_method_parnames(
+    family = family,
+    data = data,
+    Y = Y,
+    X = X,
+    M = M,
+    deg = deg,
+    doseRRmod = doseRRmod,
+    modifier_info = modifier_info
+  )
+  t0 <- proc.time()
+  fit <- fit_objective_with_hessian(
+    start = inpar,
+    fn = loglik.mcml,
+    optim.method = optim.method,
+    control = control,
+    use_optimize = length(parnames) == 1,
+    ...
+  )
+
+  out <- assemble_frequentist_fit_result(
+    fit = fit,
+    parnames = parnames,
+    t0 = t0,
+    transform = transform,
+    transform.jacobian = transform.jacobian,
+    ...
   )
   return(out)
 }
@@ -566,16 +173,29 @@ ameras.rc <- function(
   status = NULL,
   setnr = NULL,
   doseRRmod = NULL,
+  modifier_info = NULL,
   loglim = 1e-30,
   optim.method = "Nelder-Mead",
   control = list(reltol = 1e-10),
   ...
 ) {
   if (ERC & family != "poisson" & family != "prophaz") {
-    Kmat <- cov(t(data[, dosevars]))
+    Kmat <- cov(t(data[, dosevars, drop = FALSE]))
   } else {
     Kmat <- NULL
   }
+  # Group-coded modifiers are reported on the subgroup scale, but the
+  # low-level likelihoods still use reference-plus-contrast parameters.
+  loglik_transform <- make_modifier_loglik_transform(
+    transform = transform,
+    modifier_info = modifier_info,
+    family = family,
+    X = X,
+    M = M,
+    deg = deg,
+    Y = Y,
+    data = data
+  )
 
   t0 <- proc.time()
   if (family == "gaussian") {
@@ -587,28 +207,9 @@ ameras.rc <- function(
       inpar <- rep(0, 2 + length(X) + length(M) * deg + deg)
     }
 
-    fit <- optim(
-      inpar,
-      loglik.gaussian,
-      D = "rcdose_ameras",
-      X = X,
-      Y = Y,
-      M = M,
-      data = data,
-      deg = deg,
-      ERC = ERC,
-      Kmat = Kmat,
-      loglim = loglim,
-      transform = transform,
-      method = optim.method,
-      control = control,
-      ...
-    )
-    if (optim.method == "Nelder-Mead") {
-      count0 <- fit$counts
-      fit <- optim(
-        fit$par,
-        loglik.gaussian,
+    loglik.rc <- function(params, ...) {
+      loglik.gaussian(
+        params,
         D = "rcdose_ameras",
         X = X,
         Y = Y,
@@ -618,46 +219,19 @@ ameras.rc <- function(
         ERC = ERC,
         Kmat = Kmat,
         loglim = loglim,
-        transform = transform,
-        method = "BFGS",
-        control = control,
+        transform = loglik_transform,
         ...
       )
-      fit$counts <- replace(count0, is.na(count0), 0) +
-        replace(fit$counts, is.na(fit$counts), 0)
     }
-    fit$hessian <- numDeriv::hessian(
-      func = loglik.gaussian,
-      x = fit$par,
-      D = "rcdose_ameras",
-      X = X,
-      Y = Y,
-      M = M,
-      data = data,
-      deg = deg,
-      ERC = ERC,
-      Kmat = Kmat,
-      loglim = loglim,
-      transform = transform,
+    fit <- fit_objective_with_hessian(
+      start = inpar,
+      fn = loglik.rc,
+      optim.method = optim.method,
+      control = control,
+      use_optimize = FALSE,
       ...
     )
 
-    parnames <- c(
-      "(Intercept)",
-      names(data[, X, drop = FALSE]),
-      c("dose", "dose_squared")[1:deg]
-    )
-    if (!is.null(M)) {
-      parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-
-      if (deg == 2) {
-        parnames <- c(
-          parnames,
-          paste0("dose_squared:", names(data[, M, drop = FALSE]))
-        )
-      }
-    }
-    parnames <- c(parnames, "sigma")
   } else if (family == "binomial") {
     if (is.null(Y)) {
       stop("Y is required for family=binomial")
@@ -667,29 +241,9 @@ ameras.rc <- function(
       inpar <- rep(0, 1 + length(X) + length(M) * deg + deg)
     }
 
-    fit <- optim(
-      inpar,
-      loglik.binomial,
-      D = "rcdose_ameras",
-      X = X,
-      Y = Y,
-      M = M,
-      doseRRmod = doseRRmod,
-      data = data,
-      deg = deg,
-      ERC = ERC,
-      Kmat = Kmat,
-      loglim = loglim,
-      transform = transform,
-      method = optim.method,
-      control = control,
-      ...
-    )
-    if (optim.method == "Nelder-Mead") {
-      count0 <- fit$counts
-      fit <- optim(
-        fit$par,
-        loglik.binomial,
+    loglik.rc <- function(params, ...) {
+      loglik.binomial(
+        params,
         D = "rcdose_ameras",
         X = X,
         Y = Y,
@@ -700,64 +254,19 @@ ameras.rc <- function(
         ERC = ERC,
         Kmat = Kmat,
         loglim = loglim,
-        transform = transform,
-        method = "BFGS",
-        control = control,
+        transform = loglik_transform,
         ...
       )
-      fit$counts <- replace(count0, is.na(count0), 0) +
-        replace(fit$counts, is.na(fit$counts), 0)
     }
-
-    fit$hessian <- numDeriv::hessian(
-      func = loglik.binomial,
-      x = fit$par,
-      D = "rcdose_ameras",
-      X = X,
-      Y = Y,
-      M = M,
-      doseRRmod = doseRRmod,
-      data = data,
-      deg = deg,
-      ERC = ERC,
-      Kmat = Kmat,
-      loglim = loglim,
-      transform = transform,
+    fit <- fit_objective_with_hessian(
+      start = inpar,
+      fn = loglik.rc,
+      optim.method = optim.method,
+      control = control,
+      use_optimize = FALSE,
       ...
     )
 
-    if (doseRRmod != "LINEXP") {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose", "dose_squared")[1:deg]
-      )
-      if (!is.null(M)) {
-        parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-        if (deg == 2) {
-          parnames <- c(
-            parnames,
-            paste0("dose_squared:", names(data[, M, drop = FALSE]))
-          )
-        }
-      }
-    } else {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose_linear", "dose_exponential")
-      )
-      if (!is.null(M)) {
-        parnames <- c(
-          parnames,
-          paste0("dose_linear:", names(data[, M, drop = FALSE]))
-        )
-        parnames <- c(
-          parnames,
-          paste0("dose_exponential:", names(data[, M, drop = FALSE]))
-        )
-      }
-    }
   } else if (family == "poisson") {
     if (is.null(Y)) {
       stop("Y is required for family=poisson")
@@ -773,51 +282,12 @@ ameras.rc <- function(
       Kmat_diag <- rowSums(Xc^2) / (ncol(dosemat_poisson) - 1)
       rm(dosemat_poisson)
       gc()
-
-      fit <- optim(
-        inpar,
-        loglik.poisson.erc,
-        D = dosevars,
-        X = X,
-        Y = Y,
-        offset = offset,
-        M = M,
-        doseRRmod = doseRRmod,
-        data = data,
-        deg = deg,
-        loglim = loglim,
-        transform = transform,
-        method = optim.method,
-        control = control,
-        Xc = Xc,
-        Kmat_diag = Kmat_diag,
-        ...
-      )
-    } else {
-      fit <- optim(
-        inpar,
-        loglik.poisson,
-        D = "rcdose_ameras",
-        X = X,
-        Y = Y,
-        offset = offset,
-        M = M,
-        doseRRmod = doseRRmod,
-        data = data,
-        deg = deg,
-        loglim = loglim,
-        transform = transform,
-        method = optim.method,
-        control = control,
-        ...
-      )
     }
-    if (optim.method == "Nelder-Mead") {
-      count0 <- fit$counts
+
+    loglik.rc <- function(params, ...) {
       if (ERC) {
-        fit <- optim(
-          fit$par,
-          loglik.poisson.erc,
+        loglik.poisson.erc(
+          params,
           D = dosevars,
           X = X,
           Y = Y,
@@ -827,17 +297,14 @@ ameras.rc <- function(
           data = data,
           deg = deg,
           loglim = loglim,
-          transform = transform,
-          method = "BFGS",
-          control = control,
+          transform = loglik_transform,
           Xc = Xc,
           Kmat_diag = Kmat_diag,
           ...
         )
       } else {
-        fit <- optim(
-          fit$par,
-          loglik.poisson,
+        loglik.poisson(
+          params,
           D = "rcdose_ameras",
           X = X,
           Y = Y,
@@ -847,93 +314,29 @@ ameras.rc <- function(
           data = data,
           deg = deg,
           loglim = loglim,
-          transform = transform,
-          method = "BFGS",
-          control = control,
+          transform = loglik_transform,
           ...
         )
       }
-      fit$counts <- replace(count0, is.na(count0), 0) +
-        replace(fit$counts, is.na(fit$counts), 0)
     }
-
-    if (ERC) {
-      fit$hessian <- numDeriv::hessian(
-        func = loglik.poisson.erc,
-        x = fit$par,
-        D = dosevars,
-        X = X,
-        Y = Y,
-        offset = offset,
-        M = M,
-        doseRRmod = doseRRmod,
-        data = data,
-        deg = deg,
-        loglim = loglim,
-        transform = transform,
-        Xc = Xc,
-        Kmat_diag = Kmat_diag,
-        ...
-      )
-    } else {
-      fit$hessian <- numDeriv::hessian(
-        func = loglik.poisson,
-        x = fit$par,
-        D = "rcdose_ameras",
-        X = X,
-        Y = Y,
-        offset = offset,
-        M = M,
-        doseRRmod = doseRRmod,
-        data = data,
-        deg = deg,
-        loglim = loglim,
-        transform = transform,
-        ...
-      )
-    }
-    if (doseRRmod != "LINEXP") {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose", "dose_squared")[1:deg]
-      )
-      if (!is.null(M)) {
-        parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-        if (deg == 2) {
-          parnames <- c(
-            parnames,
-            paste0("dose_squared:", names(data[, M, drop = FALSE]))
-          )
-        }
-      }
-    } else {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose_linear", "dose_exponential")
-      )
-      if (!is.null(M)) {
-        parnames <- c(
-          parnames,
-          paste0("dose_linear:", names(data[, M, drop = FALSE]))
-        )
-        parnames <- c(
-          parnames,
-          paste0("dose_exponential:", names(data[, M, drop = FALSE]))
-        )
-      }
-    }
+    fit <- fit_objective_with_hessian(
+      start = inpar,
+      fn = loglik.rc,
+      optim.method = optim.method,
+      control = control,
+      use_optimize = FALSE,
+      ...
+    )
   } else if (family %in% c("clogit")) {
     if (is.null(doseRRmod)) {
-      stop("doseRRmod is required for family=prophaz")
+      stop("doseRRmod is required for family=clogit")
     }
     if (is.null(status)) {
-      stop("status is required for family=prophaz")
+      stop("status is required for family=clogit")
     }
 
     designmat <- t(model.matrix(~ as.factor(data[, setnr]) - 1))
-    set_members <- lapply(sort(unique(data[, "setnr"])), function(s) {
+    set_members <- lapply(sort(unique(data[, setnr])), function(s) {
       which(data[, setnr] == s) - 1L # zero-indexed for C++
     })
 
@@ -941,13 +344,9 @@ ameras.rc <- function(
       inpar <- rep(0, length(X) + length(M) * deg + deg)
     }
 
-    if (length(X) + length(M) * deg + deg == 1) {
-      # Optimize 1-dimensional model: use optimize instead of optim
-
-      fit0 <- optimize(
-        f = loglik.clogit,
-        lower = -20,
-        upper = 5,
+    loglik.rc <- function(params, ...) {
+      loglik.clogit(
+        params,
         D = "rcdose_ameras",
         status = status,
         X = X,
@@ -962,138 +361,19 @@ ameras.rc <- function(
         ERC = ERC,
         Kmat = Kmat,
         loglim = loglim,
-        transform = transform,
-        ...
-      )
-
-      fit <- list(
-        par = fit0$minimum,
-        value = fit0$objective,
-        convergence = 0,
-        hessian = numDeriv::hessian(
-          func = loglik.clogit,
-          x = fit0$minimum,
-          D = "rcdose_ameras",
-          status = status,
-          X = X,
-          M = M,
-          doseRRmod = doseRRmod,
-          designmat = designmat,
-          set_members = set_members,
-          entry = entry,
-          exit = exit,
-          data = data,
-          deg = deg,
-          ERC = ERC,
-          Kmat = Kmat,
-          loglim = loglim,
-          transform = transform,
-          ...
-        )
-      )
-    } else {
-      fit <- optim(
-        inpar,
-        loglik.clogit,
-        D = "rcdose_ameras",
-        status = status,
-        X = X,
-        M = M,
-        doseRRmod = doseRRmod,
-        designmat = designmat,
-        set_members = set_members,
-        entry = entry,
-        exit = exit,
-        data = data,
-        deg = deg,
-        ERC = ERC,
-        Kmat = Kmat,
-        loglim = loglim,
-        transform = transform,
-        method = optim.method,
-        control = control,
-        ...
-      )
-
-      if (optim.method == "Nelder-Mead") {
-        count0 <- fit$counts
-        fit <- optim(
-          fit$par,
-          loglik.clogit,
-          D = "rcdose_ameras",
-          status = status,
-          X = X,
-          M = M,
-          doseRRmod = doseRRmod,
-          designmat = designmat,
-          set_members = set_members,
-          entry = entry,
-          exit = exit,
-          data = data,
-          deg = deg,
-          ERC = ERC,
-          Kmat = Kmat,
-          loglim = loglim,
-          transform = transform,
-          method = "BFGS",
-          control = control,
-          ...
-        )
-        fit$counts <- replace(count0, is.na(count0), 0) +
-          replace(fit$counts, is.na(fit$counts), 0)
-      }
-      fit$hessian <- numDeriv::hessian(
-        func = loglik.clogit,
-        x = fit$par,
-        D = "rcdose_ameras",
-        status = status,
-        X = X,
-        M = M,
-        doseRRmod = doseRRmod,
-        designmat = designmat,
-        set_members = set_members,
-        entry = entry,
-        exit = exit,
-        data = data,
-        deg = deg,
-        ERC = ERC,
-        Kmat = Kmat,
-        loglim = loglim,
-        transform = transform,
+        transform = loglik_transform,
         ...
       )
     }
+    fit <- fit_objective_with_hessian(
+      start = inpar,
+      fn = loglik.rc,
+      optim.method = optim.method,
+      control = control,
+      use_optimize = length(X) + length(M) * deg + deg == 1,
+      ...
+    )
 
-    if (doseRRmod != "LINEXP") {
-      parnames <- c(
-        names(data[, X, drop = FALSE]),
-        c("dose", "dose_squared")[1:deg]
-      )
-      if (!is.null(M)) {
-        parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-        if (deg == 2) {
-          parnames <- c(
-            parnames,
-            paste0("dose_squared:", names(data[, M, drop = FALSE]))
-          )
-        }
-      }
-    } else {
-      parnames <- c(
-        names(data[, X, drop = FALSE]),
-        c("dose_linear", "dose_exponential")
-      )
-      if (!is.null(M)) {
-        parnames <- c(
-          parnames,
-          paste0("dose_linear:", names(data[, M, drop = FALSE]))
-        )
-        parnames <- c(
-          parnames,
-          paste0("dose_exponential:", names(data[, M, drop = FALSE]))
-        )
-      }
-    }
   } else if (family == "prophaz") {
     if (is.null(exit)) {
       stop("exit is required for family=prophaz")
@@ -1121,13 +401,10 @@ ameras.rc <- function(
       gc()
     }
 
-    if (length(X) + length(M) * deg + deg == 1) {
-      # Optimize 1-dimensional model: use optimize instead of optim
+    loglik.rc <- function(params, ...) {
       if (ERC) {
-        fit0 <- optimize(
-          f = loglik.prophaz.erc,
-          lower = -20,
-          upper = 5,
+        loglik.prophaz.erc(
+          params,
           D = dosevars,
           status = status,
           X = X,
@@ -1138,39 +415,14 @@ ameras.rc <- function(
           data = data,
           deg = deg,
           loglim = loglim,
-          transform = transform,
+          transform = loglik_transform,
           Xc_ord = Xc_ord,
           Kmat_diag_ord = Kmat_diag_ord,
           ...
         )
-        fit <- list(
-          par = fit0$minimum,
-          value = fit0$objective,
-          convergence = 0,
-          hessian = numDeriv::hessian(
-            func = loglik.prophaz.erc,
-            x = fit0$minimum,
-            D = dosevars,
-            status = status,
-            X = X,
-            M = M,
-            doseRRmod = doseRRmod,
-            entry = entry,
-            exit = exit,
-            data = data,
-            deg = deg,
-            loglim = loglim,
-            transform = transform,
-            Xc_ord = Xc_ord,
-            Kmat_diag_ord = Kmat_diag_ord,
-            ...
-          )
-        )
       } else {
-        fit0 <- optimize(
-          f = loglik.prophaz,
-          lower = -20,
-          upper = 5,
+        loglik.prophaz(
+          params,
           D = "rcdose_ameras",
           status = status,
           X = X,
@@ -1181,190 +433,20 @@ ameras.rc <- function(
           data = data,
           deg = deg,
           loglim = loglim,
-          transform = transform,
-          ...
-        )
-        fit <- list(
-          par = fit0$minimum,
-          value = fit0$objective,
-          convergence = 0,
-          hessian = numDeriv::hessian(
-            func = loglik.prophaz,
-            x = fit0$minimum,
-            D = "rcdose_ameras",
-            status = status,
-            X = X,
-            M = M,
-            doseRRmod = doseRRmod,
-            entry = entry,
-            exit = exit,
-            data = data,
-            deg = deg,
-            loglim = loglim,
-            transform = transform,
-            ...
-          )
-        )
-      }
-    } else {
-      if (ERC) {
-        fit <- optim(
-          inpar,
-          loglik.prophaz.erc,
-          D = dosevars,
-          status = status,
-          X = X,
-          M = M,
-          doseRRmod = doseRRmod,
-          entry = entry,
-          exit = exit,
-          data = data,
-          deg = deg,
-          loglim = loglim,
-          transform = transform,
-          method = optim.method,
-          control = control,
-          Xc_ord = Xc_ord,
-          Kmat_diag_ord = Kmat_diag_ord,
-          ...
-        )
-      } else {
-        fit <- optim(
-          inpar,
-          loglik.prophaz,
-          D = "rcdose_ameras",
-          status = status,
-          X = X,
-          M = M,
-          doseRRmod = doseRRmod,
-          entry = entry,
-          exit = exit,
-          data = data,
-          deg = deg,
-          loglim = loglim,
-          transform = transform,
-          method = optim.method,
-          control = control,
-          ...
-        )
-      }
-
-      if (optim.method == "Nelder-Mead") {
-        count0 <- fit$counts
-
-        if (ERC) {
-          fit <- optim(
-            fit$par,
-            loglik.prophaz.erc,
-            D = dosevars,
-            status = status,
-            X = X,
-            M = M,
-            doseRRmod = doseRRmod,
-            entry = entry,
-            exit = exit,
-            data = data,
-            deg = deg,
-            loglim = loglim,
-            transform = transform,
-            method = "BFGS",
-            control = control,
-            Xc_ord = Xc_ord,
-            Kmat_diag_ord = Kmat_diag_ord,
-            ...
-          )
-        } else {
-          fit <- optim(
-            fit$par,
-            loglik.prophaz,
-            D = "rcdose_ameras",
-            status = status,
-            X = X,
-            M = M,
-            doseRRmod = doseRRmod,
-            entry = entry,
-            exit = exit,
-            data = data,
-            deg = deg,
-            loglim = loglim,
-            transform = transform,
-            method = "BFGS",
-            control = control,
-            ...
-          )
-        }
-        fit$counts <- replace(count0, is.na(count0), 0) +
-          replace(fit$counts, is.na(fit$counts), 0)
-      }
-      if (ERC) {
-        fit$hessian <- numDeriv::hessian(
-          func = loglik.prophaz.erc,
-          x = fit$par,
-          D = dosevars,
-          status = status,
-          X = X,
-          M = M,
-          doseRRmod = doseRRmod,
-          entry = entry,
-          exit = exit,
-          data = data,
-          deg = deg,
-          loglim = loglim,
-          transform = transform,
-          Xc_ord = Xc_ord,
-          Kmat_diag_ord = Kmat_diag_ord,
-          ...
-        )
-      } else {
-        fit$hessian <- numDeriv::hessian(
-          func = loglik.prophaz,
-          x = fit$par,
-          D = "rcdose_ameras",
-          status = status,
-          X = X,
-          M = M,
-          doseRRmod = doseRRmod,
-          entry = entry,
-          exit = exit,
-          data = data,
-          deg = deg,
-          loglim = loglim,
-          transform = transform,
+          transform = loglik_transform,
           ...
         )
       }
     }
+    fit <- fit_objective_with_hessian(
+      start = inpar,
+      fn = loglik.rc,
+      optim.method = optim.method,
+      control = control,
+      use_optimize = length(X) + length(M) * deg + deg == 1,
+      ...
+    )
 
-    if (doseRRmod != "LINEXP") {
-      parnames <- c(
-        names(data[, X, drop = FALSE]),
-        c("dose", "dose_squared")[1:deg]
-      )
-      if (!is.null(M)) {
-        parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-        if (deg == 2) {
-          parnames <- c(
-            parnames,
-            paste0("dose_squared:", names(data[, M, drop = FALSE]))
-          )
-        }
-      }
-    } else {
-      parnames <- c(
-        names(data[, X, drop = FALSE]),
-        c("dose_linear", "dose_exponential")
-      )
-      if (!is.null(M)) {
-        parnames <- c(
-          parnames,
-          paste0("dose_linear:", names(data[, M, drop = FALSE]))
-        )
-        parnames <- c(
-          parnames,
-          paste0("dose_exponential:", names(data[, M, drop = FALSE]))
-        )
-      }
-    }
   } else if (family == "multinomial") {
     if (is.null(Y)) {
       stop("Y is required for family=multinomial")
@@ -1378,29 +460,9 @@ ameras.rc <- function(
       )
     }
 
-    fit <- optim(
-      inpar,
-      loglik.multinomial,
-      D = "rcdose_ameras",
-      X = X,
-      Y = Y,
-      M = M,
-      doseRRmod = doseRRmod,
-      data = data,
-      deg = deg,
-      ERC = ERC,
-      Kmat = Kmat,
-      loglim = loglim,
-      transform = transform,
-      method = optim.method,
-      control = control,
-      ...
-    )
-    if (optim.method == "Nelder-Mead") {
-      count0 <- fit$counts
-      fit <- optim(
-        fit$par,
-        loglik.multinomial,
+    loglik.rc <- function(params, ...) {
+      loglik.multinomial(
+        params,
         D = "rcdose_ameras",
         X = X,
         Y = Y,
@@ -1411,147 +473,39 @@ ameras.rc <- function(
         ERC = ERC,
         Kmat = Kmat,
         loglim = loglim,
-        transform = transform,
-        method = "BFGS",
-        control = control,
+        transform = loglik_transform,
         ...
       )
-      fit$counts <- replace(count0, is.na(count0), 0) +
-        replace(fit$counts, is.na(fit$counts), 0)
     }
-    fit$hessian <- numDeriv::hessian(
-      func = loglik.multinomial,
-      x = fit$par,
-      D = "rcdose_ameras",
-      X = X,
-      Y = Y,
-      M = M,
-      doseRRmod = doseRRmod,
-      data = data,
-      deg = deg,
-      ERC = ERC,
-      Kmat = Kmat,
-      loglim = loglim,
-      transform = transform,
+    fit <- fit_objective_with_hessian(
+      start = inpar,
+      fn = loglik.rc,
+      optim.method = optim.method,
+      control = control,
+      use_optimize = FALSE,
       ...
     )
 
-    if (doseRRmod != "LINEXP") {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose", "dose_squared")[1:deg]
-      )
-      if (!is.null(M)) {
-        parnames <- c(parnames, paste0("dose:", names(data[, M, drop = FALSE])))
-        if (deg == 2) {
-          parnames <- c(
-            parnames,
-            paste0("dose_squared:", names(data[, M, drop = FALSE]))
-          )
-        }
-      }
-    } else {
-      parnames <- c(
-        "(Intercept)",
-        names(data[, X, drop = FALSE]),
-        c("dose_linear", "dose_exponential")
-      )
-      if (!is.null(M)) {
-        parnames <- c(
-          parnames,
-          paste0("dose_linear:", names(data[, M, drop = FALSE]))
-        )
-        parnames <- c(
-          parnames,
-          paste0("dose_exponential:", names(data[, M, drop = FALSE]))
-        )
-      }
-    }
-
-    mylv <- levels(data[, Y])
-
-    mylv <- mylv[-length(mylv)]
-
-    parnames <- do.call(
-      "c",
-      lapply(mylv, function(lv) paste0("(", lv, ")_", parnames))
-    )
   }
-
-  if (!is.null(transform) & !is.null(transform.jacobian)) {
-    if (is.function(transform) & is.function(transform.jacobian)) {
-      if ("boundcheck" %in% names(formals(transform))) {
-        coefs <- transform(fit$par, boundcheck = TRUE, ...)
-      } else {
-        coefs <- transform(fit$par, ...)
-      }
-
-      if (
-        det(fit$hessian) != 0 &
-          rcond(fit$hessian) > .Machine$double.eps &
-          all(eigen(fit$hessian)$values > 0)
-      ) {
-        cholH <- tryCatch(chol(fit$hessian), error = function(e) NULL)
-        if (!is.null(cholH)) {
-          jac <- transform.jacobian(fit$par, ...)
-          tmpsolve <- backsolve(cholH, t(jac), transpose = TRUE)
-          vcov <- crossprod(tmpsolve)
-          #vcov <- jac %*% MASS::ginv(fit$hessian) %*% t(jac)
-        } else {
-          warning(
-            "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
-          )
-          vcov <- matrix(NA, ncol = length(parnames), nrow = length(parnames))
-        }
-      } else {
-        warning(
-          "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
-        )
-        vcov <- matrix(NA, ncol = length(parnames), nrow = length(parnames))
-      }
-    } else {
-      stop("transform and transform.jacobian should be functions")
-    }
-  } else {
-    coefs <- fit$par
-    if (
-      det(fit$hessian) != 0 &
-        rcond(fit$hessian) > .Machine$double.eps &
-        all(eigen(fit$hessian)$values > 0)
-    ) {
-      vcov <- chol2inv(chol(fit$hessian)) #MASS::ginv(fit$hessian)
-    } else {
-      warning(
-        "WARNING: Hessian was not invertible or inverse was not positive definite, variance matrix could not be obtained"
-      )
-      vcov <- matrix(NA, ncol = length(parnames), nrow = length(parnames))
-    }
-  }
-
-  names(coefs) <- parnames
-  rownames(vcov) <- colnames(vcov) <- parnames
-
-  t1 <- proc.time()
-  timedif <- t1 - t0
-  runtime <- paste(
-    round(as.numeric(as.difftime(timedif["elapsed"], units = "secs")), 1),
-    "seconds"
+  parnames <- make_method_parnames(
+    family = family,
+    data = data,
+    Y = Y,
+    X = X,
+    M = M,
+    deg = deg,
+    doseRRmod = doseRRmod,
+    modifier_info = modifier_info
   )
 
-  out <- list(
-    coefficients = coefs,
-    sd = sqrt(diag(vcov)),
-    vcov = vcov,
-    optim = list(
-      par = fit$par,
-      hessian = fit$hessian,
-      convergence = fit$convergence,
-      counts = fit$counts
-    ),
-    loglik = -1 * fit$value,
-    runtime = runtime,
-    ERC = ERC
+  out <- assemble_frequentist_fit_result(
+    fit = fit,
+    parnames = parnames,
+    t0 = t0,
+    transform = transform,
+    transform.jacobian = transform.jacobian,
+    extra = list(ERC = ERC),
+    ...
   )
 
   return(out)
