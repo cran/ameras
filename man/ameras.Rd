@@ -65,7 +65,7 @@ If \code{methods} contains at least one of RC, ERC, and MCML and at least one of
 \item{inpar}{vector of initial values for log-likelihood optimization (optional).}
 \item{loglim}{parameter used in likelihood computations to avoid taking the log of very small or negative numbers via \code{log(max(x, loglim))} (default \code{1e-30}).}
 \item{MFMA}{number of samples for \code{"FMA"} to compute estimates and CIs (default 100,000).}
-\item{future.chunk.size.FMA}{optional positive number controlling the average number of FMA dose realizations per future when \pkg{future.apply} is available. Parallel execution is controlled by the user's current \code{future::plan()}; with the default sequential plan, FMA is fit sequentially.}
+\item{future.chunk.size.FMA}{optional positive number controlling the average number of FMA dose realizations per future. When \code{NULL} (the default), approximately one future per available worker is used. Parallel execution is controlled by the user's current \code{future::plan()}; the default plan is sequential.}
 \item{prophaz.numints.BMA}{for \code{methods="BMA"} with \code{family="prophaz"}, the number of subintervals with constant baseline hazard (default 10). Cut points are determined based on quantiles of the event time distribution among cases.}
 \item{ERRprior.BMA}{prior for dose-related parameters when \code{doseRRmod="ERR"} or \code{"LINEXP"} and \code{methods="BMA"}.
 Options: \code{"truncated_normal"}, \code{"truncated_horseshoe"}, \code{"truncated_doubleexponential"}, \code{"normal"}, \code{"horseshoe"}, \code{"doubleexponential"}, see Details (default \code{"doubleexponential"}).}
@@ -93,15 +93,15 @@ omitted-row object returned by the missing-value action, when applicable),
 function, if applicable), \code{transform.jacobian} (the used Jacobian function for 
 the transformation, if applicable), \code{other.args} (any other arguments passed to 
 \dots), \code{model} (a list containing the specified model components parsed from 
-the formula), \code{CI.computed} (logical, whether confidence intervals have been 
-attached by \code{\link[=confint.amerasfit]{confint}}), and \code{data} (either the 
-data frame used for model fitting when \code{keep.data=TRUE} or \code{NULL} otherwise).
+the formula, including \code{model$data}, which is either the data frame used for
+model fitting when \code{keep.data=TRUE} or \code{NULL} otherwise), and
+\code{CI.computed} (logical, whether confidence intervals have been attached by
+\code{\link[=confint.amerasfit]{confint}}).
 
 For each method supplied to \code{methods}, the output contains a list with components:
   \item{coefficients}{named vector of model coefficients.}
   \item{sd}{named vector of standard deviations.}
   \item{vcov}{covariance matrix for the full parameter vector. Based on the observed information (negative second derivative of log-likelihood) for RC, ERC, and MCML, and on the obtained samples for FMA and BMA.}
-  \item{runtime}{string with the total CPU runtime currently available for the method. After fitting this is the fitting time; after \code{\link[=confint.amerasfit]{confint}} this includes confidence interval computation time.}
   \item{timing}{list with CPU and elapsed timings for fitting, confidence interval computation, and their total. CPU time is used for printed runtime summaries.}
   
 For RC, ERC, and MCML  the following additional output is included:

@@ -1,3 +1,20 @@
+# ameras 0.5.2
+
+## Bug fixes
+
+* Fixed a BMA error when fitting models with a single formula-based effect
+  modifier.
+* Fixed numerical failures that could occur while fitting subgroup-coded
+  effect modifiers, despite valid transformed subgroup effects.
+* FMA now honors the optimizer selected through `optim.method`.
+
+## Changes
+
+* Newly fitted method results no longer contain the redundant `runtime`
+  field. Fitting, confidence interval, and total computation times remain
+  available through `timing`. Fitted objects from earlier versions that
+  contain only `runtime` remain supported.
+
 # ameras 0.5.1
 
 ## Bug fixes

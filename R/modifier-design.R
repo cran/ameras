@@ -246,7 +246,12 @@ prepare_modifier_inputs <- function(data, modifier_info) {
     var <- modifier_info$source_vars[i]
     n_cols <- ncol(encoded[[i]]$values)
     idx <- design_offset + seq_len(n_cols)
-    data[, design_vars[idx]] <- encoded[[i]]$values
+    # Assign each design column separately. Assigning a one-column matrix to a
+    # data-frame column can create a matrix-valued column, which has different
+    # dimensional behavior from an ordinary numeric column.
+    for (j in seq_len(n_cols)) {
+      data[[design_vars[idx[j]]]] <- encoded[[i]]$values[, j]
+    }
     levels[[var]] <- encoded[[i]]$levels
     parameter_names[idx] <- encoded[[i]]$parameter_names
     design_offset <- design_offset + n_cols
@@ -339,11 +344,10 @@ modifier_reported_to_internal_params <- function(
     return(params)
   }
 
-  # Existing likelihood functions expect the legacy parameterization:
-  #   reference subgroup effect, then contrasts for non-reference groups.
-  # Subgroup-coded fits report and optimize all subgroup effects directly, so
-  # map each reported subgroup block to the internal contrast block before
-  # evaluating the likelihood.
+  # BMA priors and some downstream helpers still use the legacy
+  # reference-plus-contrast parameterization. Subgroup-coded fits report most
+  # outputs as direct subgroup effects, so map only when a caller explicitly
+  # needs the internal contrast block.
   intercept <- as.integer(!(family %in% c("prophaz", "clogit")))
   x_len <- length(X)
   n_modifier_cols <- length(M)
@@ -371,6 +375,10 @@ modifier_reported_to_internal_params <- function(
       ncol = deg,
       byrow = TRUE
     )
+    # Match exposureRR()'s large-value guard before taking subgroup
+    # differences. Otherwise Inf - finite can create a negative infinite
+    # contrast even though each reported subgroup effect was lower-bounded.
+    group_effects <- cap_positive_infinite_rr_params(group_effects)
     group_contrasts <- sweep(
       group_effects[-1L, , drop = FALSE],
       2,
@@ -464,22 +472,13 @@ make_modifier_loglik_transform <- function(
   }
 
   function(params, ...) {
-    # User/default transforms act on the reported parameter scale first. Only
-    # after that do we map subgroup effects to the legacy contrast scale used by
-    # the low-level likelihoods.
+    # User/default transforms act on the reported subgroup parameter scale.
+    # The low-level likelihoods receive modifier_info and evaluate subgroup
+    # effects directly, avoiding unstable reference/contrast cancellation.
     if (!is.null(transform)) {
       params <- transform(params = params, ...)
     }
-    modifier_reported_to_internal_params(
-      params = params,
-      family = family,
-      X = X,
-      M = M,
-      deg = deg,
-      modifier_info = modifier_info,
-      Y = Y,
-      data = data
-    )
+    params
   }
 }
 

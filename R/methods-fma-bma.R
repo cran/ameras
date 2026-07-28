@@ -150,7 +150,8 @@ fit_fma_realizations <- function(
   # count.
   fma_realization_lapply(seq_along(dosevars), function(Xi) {
     # Keep each realization fit on the reported subgroup scale when modifiers
-    # use no-intercept coding, while evaluating the existing contrast likelihood.
+    # use no-intercept coding. modifier_info lets the relative-risk helper avoid
+    # unstable subgroup-to-contrast cancellation during likelihood evaluation.
     loglik_transform <- make_modifier_loglik_transform(
       transform = transform,
       modifier_info = modifier_info,
@@ -177,6 +178,7 @@ fit_fma_realizations <- function(
       deg = deg,
       ERC = FALSE,
       transform = loglik_transform,
+      modifier_info = modifier_info,
       designmat = designmat
     )
     fit <- fit_objective_with_hessian(
@@ -372,8 +374,7 @@ assemble_fma_result <- function(
     included.samples = included.samples,
     weights = wgts,
     samples = FMAsamples,
-    timing = timing,
-    runtime = format_runtime(timing$total$cpu)
+    timing = timing
   )
 }
 
@@ -624,6 +625,18 @@ ameras.fma <- function(
   )
 
   return(out)
+}
+
+
+# The NIMBLE model indexes a single design column as a vector and multiple
+# columns as a matrix. Normalize that shape explicitly so data-frame subclasses
+# and generated formula columns cannot change the dimensionality seen by NIMBLE.
+nimble_design_values <- function(data, columns) {
+  if (length(columns) == 1L) {
+    return(as.numeric(data[[columns]]))
+  }
+
+  as.matrix(data[, columns, drop = FALSE])
 }
 
 
@@ -976,11 +989,17 @@ ameras.bma <- function(
     nimbleconst <- c(nimbleconst, list(Z = Z))
   }
   if (length(X) > 0) {
-    nimbleconst <- c(nimbleconst, list(Xmat = data[, X]))
+    nimbleconst <- c(
+      nimbleconst,
+      list(Xmat = nimble_design_values(data, X))
+    )
     mons <- c(mons, "a")
   }
   if (length(M) > 0) {
-    nimbleconst <- c(nimbleconst, list(Mmat = data[, M]))
+    nimbleconst <- c(
+      nimbleconst,
+      list(Mmat = nimble_design_values(data, M))
+    )
     if (deg == 1) {
       mons <- c(mons, "bm")
     } else if (deg > 1) {
@@ -1216,8 +1235,7 @@ ameras.bma <- function(
     Rhat = Rhat,
     samples = nimblesamples,
     included.realizations = included.realizations,
-    timing = timing,
-    runtime = format_runtime(timing$total$cpu)
+    timing = timing
   )
   if (family == "prophaz") {
     out <- c(

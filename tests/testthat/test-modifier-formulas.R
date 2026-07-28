@@ -32,6 +32,7 @@ test_that("formula modifiers build contrast and subgroup designs", {
     unname(as.vector(inputs_fac$data[[inputs_fac$design_vars]])),
     c(0, 1, 0, 1)
   )
+  expect_false(is.matrix(inputs_fac$data[[inputs_fac$design_vars]]))
   expect_identical(inputs_fac$modifier_info$parameter_names, "M_fac=high")
 
   parsed_f3 <- ameras:::parse_ameras_formula(
@@ -83,6 +84,24 @@ test_that("formula modifiers build contrast and subgroup designs", {
     inputs_group_alt$modifier_info$parameter_names,
     c("F3=b", "F3=c")
   )
+})
+
+
+test_that("NIMBLE design inputs preserve the dimensions expected by BMA", {
+  dat <- data.frame(
+    one = c(0, 1, 0),
+    two = c(1, 0, 1)
+  )
+
+  # NIMBLE uses one-dimensional indexing when the model has one X or M column,
+  # and two-dimensional indexing when it has more than one.
+  one <- ameras:::nimble_design_values(dat, "one")
+  two <- ameras:::nimble_design_values(dat, c("one", "two"))
+
+  expect_type(one, "double")
+  expect_null(dim(one))
+  expect_identical(dim(two), c(3L, 2L))
+  expect_type(two, "double")
 })
 
 
@@ -271,6 +290,108 @@ test_that("subgroup-coded multi-level factors match contrast-coded fits", {
     tolerance = 1e-5
   )
   expect_equal(group$RC$loglik, contrast$RC$loglik, tolerance = 1e-6)
+})
+
+
+test_that("subgroup conversion uses the same positive-infinity cap as exposureRR", {
+  modifier_info <- ameras:::new_modifier_info(
+    coding = "group",
+    design_vars = ".ameras_modifier_1",
+    parameter_names = "M",
+    group_labels = c("M=0", "M=1")
+  )
+
+  expect_equal(
+    ameras:::cap_positive_infinite_rr_params(c(-Inf, Inf, 2)),
+    c(-Inf, 70, 2)
+  )
+
+  converted <- ameras:::modifier_reported_to_internal_params(
+    params = c(Inf, 0.25),
+    family = "prophaz",
+    M = 1,
+    deg = 1,
+    modifier_info = modifier_info
+  )
+
+  # The reported subgroup effects are capped before converting to the internal
+  # reference-plus-contrast scale: main = 70, contrast = 0.25 - 70.
+  expect_equal(converted, c(70, -69.75))
+})
+
+
+test_that("subgroup-coded relative risks are evaluated on the subgroup scale", {
+  dat <- data.frame(
+    D = c(22.37811, 22.37811),
+    M_design = c(0, 1)
+  )
+  modifier_info <- ameras:::new_modifier_info(
+    coding = "group",
+    design_vars = "M_design",
+    parameter_names = "M",
+    group_labels = c("M=0", "M=1")
+  )
+  low <- -1 / max(dat$D)
+  params <- c(1e20, low + 1e-12)
+
+  rr <- ameras:::exposureRR(
+    params = params,
+    D = "D",
+    M = "M_design",
+    data = dat,
+    doseRRmod = "ERR",
+    deg = 1,
+    modifier_info = modifier_info
+  )
+
+  # The second row should use the second reported subgroup effect directly.
+  # Converting through a huge reference-plus-contrast value first can lose this
+  # small positive margin by numerical cancellation.
+  expect_equal(unname(rr[2, 1]), 1 + params[2] * dat$D[2], tolerance = 1e-12)
+  expect_true(rr[2, 1] > 0)
+
+  # Non-group ERR models keep the existing positive-infinity cap.
+  expect_equal(unname(ameras:::exposureRR(
+    params = Inf,
+    D = "D",
+    M = NULL,
+    data = dat,
+    doseRRmod = "ERR",
+    deg = 1
+  )[1, 1]), 1 + 70 * dat$D[1])
+})
+
+
+test_that("subgroup-coded proportional hazards likelihood avoids contrast cancellation", {
+  dat <- data.frame(
+    entry = c(0, 0),
+    exit = c(1, 2),
+    status = c(1, 0),
+    D = c(22.37811, 22.37811),
+    M_design = c(0, 1)
+  )
+  modifier_info <- ameras:::new_modifier_info(
+    coding = "group",
+    design_vars = "M_design",
+    parameter_names = "M",
+    group_labels = c("M=0", "M=1")
+  )
+  low <- -1 / max(dat$D)
+
+  val <- ameras:::loglik.prophaz(
+    params = c(1e20, low + 1e-12),
+    D = "D",
+    status = "status",
+    M = "M_design",
+    data = dat,
+    doseRRmod = "ERR",
+    deg = 1,
+    entry = "entry",
+    exit = "exit",
+    modifier_info = modifier_info
+  )
+
+  expect_true(is.finite(val))
 })
 
 
@@ -465,12 +586,13 @@ test_that("subgroup-coded modifiers report subgroup BMA samples", {
 
 test_that("formula contrast modifiers remain supported for BMA", {
   skip_on_cran()
-  data <- three_level_modifier_data()
+  data("data", package = "ameras")
 
-  # BMA still uses the existing reference-plus-contrast parameterization. This
-  # keeps the new formula syntax compatible with the current BMA model code.
+  # A binary formula modifier creates one internal design column. Keep a real
+  # BMA fit here because NIMBLE distinguishes that vector case from the matrix
+  # used for multi-level factor modifiers.
   fit <- suppressWarnings(suppressMessages(ameras(
-    Y.gaussian ~ dose(V1:V2, modifier = ~ F3),
+    Y.gaussian ~ dose(V1:V2, modifier = ~ M1),
     data = data[seq_len(24), ],
     family = "gaussian",
     methods = "BMA",
@@ -482,7 +604,7 @@ test_that("formula contrast modifiers remain supported for BMA", {
 
   expect_named(
     fit$BMA$coefficients,
-    c("(Intercept)", "dose", "dose:F3=mid", "dose:F3=high", "sigma")
+    c("(Intercept)", "dose", "dose:M1", "sigma")
   )
 })
 
